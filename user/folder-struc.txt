@@ -1,0 +1,59 @@
+lib/
+│
+├── main.dart
+│
+├── providers/
+│   ├── auth_provider.dart
+│   ├── user_provider.dart
+│   ├── service_request_provider.dart
+│   ├── location_provider.dart
+│   └── app_state_provider.dart
+│
+├── screens/
+│   ├── auth/
+│   │   ├── login_screen.dart
+│   │   ├── signup_screen.dart
+│   │   └── verify_otp_screen.dart
+│   │
+│   ├── home/
+│   │   ├── home_screen.dart
+│   │   └── navigation_drawer.dart
+│   │
+│   ├── services/
+│   │   ├── request_service_screen.dart
+│   │   └── service_tracking_screen.dart
+│   │
+│   ├── profile/
+│   │   └── profile_screen.dart
+│   │
+│   └── splash_screen.dart
+│
+├── widgets/
+│   ├── custom_button.dart
+│   ├── custom_text_field.dart
+│   ├── loading_indicator.dart
+│   └── map_widget.dart
+│
+├── models/
+│   ├── user.dart
+│   ├── service_request.dart
+│   └── driver.dart
+│
+├── services/
+│   ├── api_service.dart
+│   ├── auth_service.dart
+│   ├── location_service.dart
+│   └── notification_service.dart
+│
+├── utils/
+│   ├── routes.dart
+│   ├── theme.dart
+│   ├── constants.dart
+│   └── validators.dart
+│
+├── helpers/
+│   └── shared_preferences_helper.dart
+│
+└── assets/
+    ├── images/
+    └── icons/

@@ -1,0 +1,184 @@
+# Android
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/**/GeneratedPluginRegistrant.kt
+**/android/**/BuildConfig.java
+**/android/**/BuildConfig.kt
+
+# iOS
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/*sync/
+**/ios/**/.sconsign.dblite
+**/ios/**/.tags*
+**/ios/**/.vagrant/
+**/ios/**/DerivedData/
+**/ios/**/Icon?
+**/ios/**/Pods/
+**/ios/**/xcuserdata/
+**/ios/.generated/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/.generated/
+
+# Windows
+**/windows/flutter/generated_plugin_registrant.cc
+**/windows/flutter/generated_plugin_registrant.h
+**/windows/flutter/generated_plugins.cmake
+
+# Linux
+**/linux/flutter/generated_plugin_registrant.cc
+**/linux/flutter/generated_plugin_registrant.h
+**/linux/flutter/generated_plugins.cmake
+
+# Web
+**/web/
+
+# Flutter
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+flutter_*.png
+linked_*.ds
+unlinked.ds
+unlinked_spec.ds
+*.swp
+*.swo
+*~
+.DS_Store
+*.lock
+*.iml
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.idea/
+.vscode/
+.sconsign.dblite
+*.swo
+*~
+
+# Flutter coverage
+coverage/
+
+# Node.js/Backend
+**/back-end/node_modules/
+**/back-end/npm-debug.log*
+**/back-end/yarn-debug.log*
+**/back-end/yarn-error.log*
+**/back-end/.env
+**/back-end/.env.local
+**/back-end/.env.development.local
+**/back-end/.env.test.local
+**/back-end/.env.production.local
+**/back-end/dist/
+**/back-end/build/
+**/back-end/coverage/
+**/back-end/.nyc_output/
+**/back-end\.wwebjs_auth
+**/back-end\.wwebjs_cache
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+back-end/node_modules/
+back-end/jspm_packages/
+
+back-end/.wwebjs_auth/
+back-end/.wwebjs_cache/
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IntelliJ
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Android Studio
+.idea/
+.gradle
+local.properties
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# Temporary files
+tmp/
+temp/

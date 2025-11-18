@@ -1,0 +1,49 @@
+backend/
+├── config/
+│   ├── db.js
+│   ├── env.js
+│   └── googleMaps.js
+├── controllers/
+│   ├── userAuthController.js
+│   ├── userController.js
+│   ├── driverController.js
+│   ├── adminController.js
+│   ├── serviceController.js
+│   └── historyController.js      
+├── models/
+|   ├── Admin.js
+|   ├── ActivityLog.js
+│   ├── User.js
+│   ├── Customer.js
+│   ├── Driver.js
+│   ├── ServiceRequest.js
+│   └── Company.js
+├── routes/
+│   ├── userAuthRoutes.js
+│   ├── userRoutes.js
+│   ├── driverRoutes.js
+│   ├── adminRoutes.js
+│   ├── serviceRoutes.js
+│   └── historyRoutes.js           
+├── middleware/
+│   ├── auth.js
+│   ├── roleCheck.js
+│   └── errorHandler.js
+├── services/
+│   ├── otpService.js
+│   ├── notificationService.js
+│   ├── geolocationService.js
+│   └── paymentService.js
+├── utils/
+│   ├── validators.js
+│   ├── logger.js
+│   ├── responseHandler.js
+│   └── documentUpload.js
+├── tests/
+│   ├── integration/
+│   │   └── history.test.js       
+│   └── unit/
+├── .env
+├── .gitignore
+├── package.json
+└── server.js

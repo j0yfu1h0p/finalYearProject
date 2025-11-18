@@ -1,0 +1,5 @@
+package com.myautobridge.user
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
