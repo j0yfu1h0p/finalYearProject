@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyAutoBridge | Towing & Maintenance</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #0f172a;
+            /* Navy Blue */
+            --accent: #f97316;
+            /* Bright Orange */
+            --light: #f1f5f9;
+            --text: #334155;
+            --white: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            line-height: 1.6;
+            color: var(--text);
+            background-color: var(--light);
+        }
+
+        /* Header */
+        header {
+            background: var(--primary);
+            color: var(--white);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--white);
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        nav a {
+            color: var(--white);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--accent);
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 90vh;
+            background: linear-gradient(rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.8)),
+                url('https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: var(--white);
+            padding: 0 1rem;
+            margin-top: 60px;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: var(--white);
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .btn:hover {
+            background: #e65a00;
+            transform: translateY(-3px);
+        }
+
+        /* Services Section */
+        .services {
+            padding: 5rem 5%;
+            background: var(--white);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-header p {
+            color: #64748b;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--light);
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.3s;
+            border: 1px solid #e2e8f0;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .icon-box {
+            width: 70px;
+            height: 70px;
+            background: rgba(249, 115, 22, 0.1);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 1.5rem;
+            color: var(--accent);
+            font-size: 1.8rem;
+        }
+
+        .card h3 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .card p {
+            font-size: 0.95rem;
+            color: #64748b;
+        }
+
+        /* Features/Info Strip */
+        .features {
+            background: var(--primary);
+            color: var(--white);
+            padding: 4rem 5%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .feature-item h3 {
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+
+        /* Footer */
+        footer {
+            background: #020617;
+            color: #94a3b8;
+            text-align: center;
+            padding: 2rem 5%;
+        }
+
+        footer p {
+            font-size: 0.9rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            nav {
+                display: none;
+                /* Simple hiding for mobile demo */
+            }
+
+            .header {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header>
+        <a href="#" class="logo">MyAuto<span>Bridge</span></a>
+        <nav>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#contact">Download App</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <h1>Vehicle Towing & Maintenance Platform</h1>
+        <p>Connecting vehicle owners with verified mechanics and towing drivers in real-time. Fast, reliable, and
+            transparent.</p>
+        <a href="#services" class="btn">Explore Services</a>
+    </section>
+
+    <!-- Services Section -->
+    <section class="services" id="services">
+        <div class="section-header">
+            <h2>Our Services</h2>
+            <p>Immediate roadside assistance whenever you need it.</p>
+        </div>
+
+        <div class="grid">
+            <!-- Service 1 -->
+            <div class="card">
+                <div class="icon-box">
+                    <i class="fas fa-truck-pickup"></i>
+                </div>
+                <h3>Towing Service</h3>
+                <p>Reliable towing for cars, bikes, and heavy trucks. We track the driver in real-time to reach you
+                    faster.</p>
+            </div>
+
+            <!-- Service 2 -->
+            <div class="card">
+                <div class="icon-box">
+                    <i class="fas fa-wrench"></i>
+                </div>
+                <h3>Mechanic on Demand</h3>
+                <p>Expert mechanics sent directly to your location for on-site inspections and immediate repairs.</p>
+            </div>
+
+            <!-- Service 3 -->
+            <div class="card">
+                <div class="icon-box">
+                    <i class="fas fa-key"></i>
+                </div>
+                <h3>Car Lockout</h3>
+                <p>Locked your keys inside? Our professionals can safely unlock your vehicle without damage.</p>
+            </div>
+
+            <!-- Service 4 -->
+            <div class="card">
+                <div class="icon-box">
+                    <i class="fas fa-car-battery"></i>
+                </div>
+                <h3>Battery Jump Start</h3>
+                <p>Dead battery? We provide quick jump-start services to get your engine running again.</p>
+            </div>
+
+            <!-- Service 5 -->
+            <div class="card">
+                <div class="icon-box">
+                    <i class="fas fa-gas-pump"></i>
+                </div>
+                <h3>Fuel Delivery</h3>
+                <p>Run out of gas? We deliver emergency fuel directly to your location so you can reach the station.</p>
+            </div>
+
+            <!-- Service 6 -->
+            <div class="card">
+                <div class="icon-box">
+                    <i class="fas fa-compact-disc"></i>
+                </div>
+                <h3>Puncture Repair</h3>
+                <p>Fast tire changing and puncture repair services to get you back on the road safely.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="feature-item">
+            <h3><i class="fas fa-map-marker-alt"></i> Real-Time Tracking</h3>
+            <p>Track your driver or mechanic live on the map.</p>
+        </div>
+        <div class="feature-item">
+            <h3><i class="fas fa-tags"></i> Transparent Pricing</h3>
+            <p>Dynamic fare calculation based on distance.</p>
+        </div>
+        <div class="feature-item">
+            <h3><i class="fas fa-user-check"></i> Verified Providers</h3>
+            <p>All drivers and mechanics are vetted professionals.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contact">
+        <p>&copy; 2025 MyAutoBridge. All Rights Reserved.</p>
+        <p>Created by Abdullah Hassan & Ali Raza | Bahria University, Islamabad</p>
+    </footer>
+
+</body>
+
+</html>

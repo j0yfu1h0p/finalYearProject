@@ -342,6 +342,8 @@ class _RideRequestsDashboardState extends State<RideRequestsDashboard>
                   ],
                 ),
               ),
+              const Divider(height: 0.5),
+              _buildSupportSection(),
             ],
           ),
           if (provider.isLoggingOut)
@@ -359,6 +361,62 @@ class _RideRequestsDashboardState extends State<RideRequestsDashboard>
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSupportSection() {
+    const supportPhone = '+92-316-9977808';
+    const supportEmail = 'support@myautobridge.com';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Need help?',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'UberMove',
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Contact support anytime.',
+            style: TextStyle(color: Colors.black54, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.phone, color: Colors.black87, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                supportPhone,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontFamily: 'UberMove',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.email, color: Colors.black87, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                supportEmail,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontFamily: 'UberMove',
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

@@ -26,34 +26,47 @@ class Driver {
   final String email;
   final String profilePhotoUrl;
   String registrationStatus;
+  final double rating;
+  final int ratingCount;
   final List<Vehicle> vehicles;
 
   Driver.fromJson(Map<String, dynamic> json)
-      : id = json['_id']?.toString() ?? '',
-        phoneNumber = json['phoneNumber']?.toString() ?? '',
-        cnicNumber = json['identification']?['cnic_number']?.toString() ?? '',
-        cnicFrontUrl = json['identification']?['cnic_front_url']?.toString() ?? '',
-        cnicBackUrl = json['identification']?['cnic_back_url']?.toString() ?? '',
-        cnicVerified = json['identification']?['verified'] ?? false,
-        licenseNumber = json['license']?['license_number']?.toString() ?? '',
-        licensePhotoUrl = json['license']?['license_photo_url']?.toString() ?? '',
-        licenseExpiry = json['license']?['expiry_date'] != null
-            ? DateTime.tryParse(json['license']?['expiry_date']?.toString() ?? '')
-            : null,
-        licenseVerified = json['license']?['verified'] ?? false,
-        firstName = json['personal_info']?['first_name']?.toString() ?? '',
-        lastName = json['personal_info']?['last_name']?.toString() ?? '',
-        dob = json['personal_info']?['date_of_birth'] != null
-            ? DateTime.tryParse(json['personal_info']?['date_of_birth']?.toString() ?? '')
-            : null,
-        email = json['personal_info']?['email']?.toString() ?? '',
-        profilePhotoUrl = json['personal_info']?['profile_photo_url']?.toString() ?? '',
-        registrationStatus = json['personal_info']?['registration_status']?.toString() ?? 'pending',
-        vehicles = (json['vehicles'] as List? ?? [])
-            .map((v) => Vehicle.fromJson(v))
-            .toList();
+    : id = json['_id']?.toString() ?? '',
+      phoneNumber = json['phoneNumber']?.toString() ?? '',
+      cnicNumber = json['identification']?['cnic_number']?.toString() ?? '',
+      cnicFrontUrl =
+          json['identification']?['cnic_front_url']?.toString() ?? '',
+      cnicBackUrl = json['identification']?['cnic_back_url']?.toString() ?? '',
+      cnicVerified = json['identification']?['verified'] ?? false,
+      licenseNumber = json['license']?['license_number']?.toString() ?? '',
+      licensePhotoUrl = json['license']?['license_photo_url']?.toString() ?? '',
+      licenseExpiry = json['license']?['expiry_date'] != null
+          ? DateTime.tryParse(json['license']?['expiry_date']?.toString() ?? '')
+          : null,
+      licenseVerified = json['license']?['verified'] ?? false,
+      firstName = json['personal_info']?['first_name']?.toString() ?? '',
+      lastName = json['personal_info']?['last_name']?.toString() ?? '',
+      dob = json['personal_info']?['date_of_birth'] != null
+          ? DateTime.tryParse(
+              json['personal_info']?['date_of_birth']?.toString() ?? '',
+            )
+          : null,
+      email = json['personal_info']?['email']?.toString() ?? '',
+      profilePhotoUrl =
+          json['personal_info']?['profile_photo_url']?.toString() ?? '',
+      registrationStatus =
+          json['personal_info']?['registration_status']?.toString() ??
+          'pending',
+      rating = json['rating'] is num
+          ? (json['rating'] as num).toDouble()
+          : double.tryParse(json['rating']?.toString() ?? '') ?? 0.0,
+      ratingCount = json['ratingCount'] is num
+          ? (json['ratingCount'] as num).toInt()
+          : int.tryParse(json['ratingCount']?.toString() ?? '') ?? 0,
+      vehicles = (json['vehicles'] as List? ?? [])
+          .map((v) => Vehicle.fromJson(v))
+          .toList();
 }
-
 
 /// Represents vehicle information associated with a driver
 /// Contains vehicle specifications and registration documents
@@ -69,20 +82,21 @@ class Vehicle {
   final String regBackUrl;
 
   Vehicle.fromJson(Map<String, dynamic> json)
-      : type = json['vehicle_type']?.toString() ?? '',
-        model = json['company_model']?.toString() ?? '',
-        color = json['color']?.toString() ?? '',
-        plate = json['number_plate']?.toString() ?? '',
-        year = json['manufacturing_year']?.toString() ?? '',
-        photoUrl = json['vehicle_photo_url']?.toString() ?? '',
-        regFrontUrl = json['registration_front_url']?.toString() ?? '',
-        regBackUrl = json['registration_back_url']?.toString() ?? '';
+    : type = json['vehicle_type']?.toString() ?? '',
+      model = json['company_model']?.toString() ?? '',
+      color = json['color']?.toString() ?? '',
+      plate = json['number_plate']?.toString() ?? '',
+      year = json['manufacturing_year']?.toString() ?? '',
+      photoUrl = json['vehicle_photo_url']?.toString() ?? '',
+      regFrontUrl = json['registration_front_url']?.toString() ?? '',
+      regBackUrl = json['registration_back_url']?.toString() ?? '';
 }
 
 /// Administrative service class for driver management operations
 /// Handles API communication for driver details, approval, and rejection
 class AdminService {
-  final String _baseUrl = 'https://smiling-sparrow-proper.ngrok-free.app/api/admin';
+  final String _baseUrl =
+      'https://smiling-sparrow-proper.ngrok-free.app/api/admin';
   final AuthService _authService = AuthService();
 
   /// Retrieves detailed driver information from the API
@@ -113,7 +127,9 @@ class AdminService {
       } else if (response.statusCode == 404) {
         throw Exception('Driver not found');
       } else {
-        throw Exception('Failed to load driver details: ${response.statusCode}');
+        throw Exception(
+          'Failed to load driver details: ${response.statusCode}',
+        );
       }
     } catch (e) {
       // Handle JSON parsing errors specifically
@@ -123,6 +139,7 @@ class AdminService {
       rethrow;
     }
   }
+
   /// Approves driver registration after verification
   /// Updates driver status to approved in the system
   Future<void> approveDriver(String driverId) async {
@@ -209,7 +226,7 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => LoginPage()),
-          (route) => false,
+      (route) => false,
     );
 
     SnackBarUtil.showError(context, 'Session expired. Please login again.');
@@ -219,7 +236,9 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
   /// Updates UI state based on API response success or failure
   Future<void> _fetchDriverDetails() async {
     try {
-      final fetchedDriver = await _adminService.getDriverDetails(widget.driverId);
+      final fetchedDriver = await _adminService.getDriverDetails(
+        widget.driverId,
+      );
       setState(() {
         driver = fetchedDriver;
         isLoading = false;
@@ -257,7 +276,11 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
 
   /// Shows confirmation dialog for critical actions like approval/rejection
   /// Ensures user intent before executing irreversible operations
-  void _showConfirmationDialog(String title, String message, VoidCallback onConfirm) {
+  void _showConfirmationDialog(
+    String title,
+    String message,
+    VoidCallback onConfirm,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -267,7 +290,10 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel', style: TextStyle(color: _textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: _textSecondary),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -287,7 +313,7 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
     _showConfirmationDialog(
       'Approve Driver',
       'Are you sure you want to approve this driver?',
-          () async {
+      () async {
         try {
           HapticFeedback.lightImpact();
           await _adminService.approveDriver(widget.driverId);
@@ -312,7 +338,7 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
     _showConfirmationDialog(
       'Reject Driver',
       'Are you sure you want to reject this driver?',
-          () async {
+      () async {
         try {
           HapticFeedback.lightImpact();
           await _adminService.rejectDriver(widget.driverId);
@@ -378,7 +404,10 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
                 if (isVerified) ...[
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: _accentColor.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
@@ -404,6 +433,100 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDriverRatingCard() {
+    final double average = driver?.rating ?? 0;
+    final int count = driver?.ratingCount ?? 0;
+    final bool hasReviews = count > 0;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _accentColor.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.star_rate_rounded,
+                color: _accentColor,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Driver Rating',
+                    style: TextStyle(
+                      color: _textSecondary,
+                      fontSize: 13,
+                      fontFamily: 'UberMove',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        hasReviews ? average.toStringAsFixed(1) : '--',
+                        style: const TextStyle(
+                          color: _textPrimary,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'UberMove',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        hasReviews
+                            ? '$count review${count == 1 ? '' : 's'}'
+                            : 'No reviews yet',
+                        style: const TextStyle(
+                          color: _textSecondary,
+                          fontSize: 14,
+                          fontFamily: 'UberMove',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    hasReviews
+                        ? 'Latest rating reflects completed rides and dispute outcomes.'
+                        : 'Once riders submit reviews, their scores will appear here.',
+                    style: const TextStyle(
+                      color: _textSecondary,
+                      fontSize: 12,
+                      fontFamily: 'UberMove',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -450,40 +573,48 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
                 ),
                 child: imageUrl.isNotEmpty
                     ? ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Center(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: _errorColor,
+                                    size: 40,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Failed to load image',
+                                    style: TextStyle(color: _textSecondary),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    : Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.error_outline, color: _errorColor, size: 40),
+                            Icon(
+                              Icons.photo_outlined,
+                              color: _textSecondary,
+                              size: 40,
+                            ),
                             const SizedBox(height: 8),
                             const Text(
-                              'Failed to load image',
+                              'No image available',
                               style: TextStyle(color: _textSecondary),
                             ),
                           ],
                         ),
-                      );
-                    },
-                  ),
-                )
-                    : Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.photo_outlined, color: _textSecondary, size: 40),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'No image available',
-                        style: TextStyle(color: _textSecondary),
                       ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),
@@ -533,7 +664,7 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
   /// Generates status badge with color-coded visual indicators
   /// Displays current registration status with appropriate styling
   Widget _buildStatusBadge() {
-    final status = driver?.registrationStatus?.toLowerCase() ?? 'pending';
+    final status = (driver?.registrationStatus ?? 'pending').toLowerCase();
     late Color color;
     late String text;
 
@@ -597,6 +728,8 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
       );
     }
 
+    final vehicleList = driver?.vehicles ?? <Vehicle>[];
+
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
@@ -605,10 +738,7 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
         elevation: 0,
         title: const Text(
           'Driver Details',
-          style: TextStyle(
-            fontFamily: 'UberMove',
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontFamily: 'UberMove', fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
@@ -626,7 +756,10 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
                         leading: Icon(Icons.check_circle, color: _accentColor),
                         title: const Text(
                           'Approve Driver',
-                          style: TextStyle(color: _textPrimary, fontFamily: 'UberMove'),
+                          style: TextStyle(
+                            color: _textPrimary,
+                            fontFamily: 'UberMove',
+                          ),
                         ),
                         onTap: () {
                           Navigator.pop(context);
@@ -637,21 +770,30 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
                         leading: Icon(Icons.pending, color: _warningColor),
                         title: const Text(
                           'Mark as Pending',
-                          style: TextStyle(color: _textPrimary, fontFamily: 'UberMove'),
+                          style: TextStyle(
+                            color: _textPrimary,
+                            fontFamily: 'UberMove',
+                          ),
                         ),
                         onTap: () {
                           Navigator.pop(context);
                           setState(() {
                             driver?.registrationStatus = 'pending';
                           });
-                          SnackBarUtil.showWarning(context, 'Driver marked as pending');
+                          SnackBarUtil.showWarning(
+                            context,
+                            'Driver marked as pending',
+                          );
                         },
                       ),
                       ListTile(
                         leading: Icon(Icons.cancel, color: _errorColor),
                         title: const Text(
                           'Reject Application',
-                          style: TextStyle(color: _textPrimary, fontFamily: 'UberMove'),
+                          style: TextStyle(
+                            color: _textPrimary,
+                            fontFamily: 'UberMove',
+                          ),
                         ),
                         onTap: () {
                           Navigator.pop(context);
@@ -692,11 +834,16 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
                     CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.grey[300],
-                      backgroundImage: driver?.profilePhotoUrl.isNotEmpty == true
+                      backgroundImage:
+                          driver?.profilePhotoUrl.isNotEmpty == true
                           ? NetworkImage(driver!.profilePhotoUrl)
                           : null,
                       child: driver?.profilePhotoUrl.isEmpty == true
-                          ? const Icon(Icons.person, size: 50, color: _textSecondary)
+                          ? const Icon(
+                              Icons.person,
+                              size: 50,
+                              color: _textSecondary,
+                            )
                           : null,
                     ),
                     const SizedBox(height: 16),
@@ -725,17 +872,26 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            _buildDriverRatingCard(),
+            const SizedBox(height: 20),
 
             // Contact Information
             _buildSection('Contact Information', [
               _buildInfoRow('Phone Number', driver?.phoneNumber ?? ''),
               _buildInfoRow('Email Address', driver?.email ?? ''),
-              _buildInfoRow('Date of Birth', driver?.dob?.toString().substring(0, 10) ?? 'Not provided'),
+              _buildInfoRow(
+                'Date of Birth',
+                driver?.dob?.toString().substring(0, 10) ?? 'Not provided',
+              ),
             ]),
 
             // Identity Verification
             _buildSection('Identity Verification', [
-              _buildInfoRow('CNIC Number', driver?.cnicNumber ?? '', isVerified: driver?.cnicVerified ?? false),
+              _buildInfoRow(
+                'CNIC Number',
+                driver?.cnicNumber ?? '',
+                isVerified: driver?.cnicVerified ?? false,
+              ),
               const SizedBox(height: 16),
               _buildDocumentCard('CNIC Front', driver?.cnicFrontUrl ?? ''),
               _buildDocumentCard('CNIC Back', driver?.cnicBackUrl ?? ''),
@@ -743,16 +899,27 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
 
             // Driving License
             _buildSection('Driving License', [
-              _buildInfoRow('License Number', driver?.licenseNumber ?? '', isVerified: driver?.licenseVerified ?? false),
-              _buildInfoRow('Expiry Date', driver?.licenseExpiry?.toString().substring(0, 10) ?? 'Not provided'),
+              _buildInfoRow(
+                'License Number',
+                driver?.licenseNumber ?? '',
+                isVerified: driver?.licenseVerified ?? false,
+              ),
+              _buildInfoRow(
+                'Expiry Date',
+                driver?.licenseExpiry?.toString().substring(0, 10) ??
+                    'Not provided',
+              ),
               const SizedBox(height: 16),
-              _buildDocumentCard('License Photo', driver?.licensePhotoUrl ?? ''),
+              _buildDocumentCard(
+                'License Photo',
+                driver?.licensePhotoUrl ?? '',
+              ),
             ]),
 
             // Vehicles
-            if (driver?.vehicles?.isNotEmpty ?? false)
-              ...driver!.vehicles!.asMap().entries.map(
-                    (entry) => _buildSection('Vehicle ${entry.key + 1} Details', [
+            if (vehicleList.isNotEmpty)
+              ...vehicleList.asMap().entries.map(
+                (entry) => _buildSection('Vehicle ${entry.key + 1} Details', [
                   _buildInfoRow('Vehicle Type', entry.value.type),
                   _buildInfoRow('Model', entry.value.model),
                   _buildInfoRow('Color', entry.value.color),
@@ -760,8 +927,14 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
                   _buildInfoRow('Manufacturing Year', entry.value.year),
                   const SizedBox(height: 16),
                   _buildDocumentCard('Vehicle Photo', entry.value.photoUrl),
-                  _buildDocumentCard('Registration Front', entry.value.regFrontUrl),
-                  _buildDocumentCard('Registration Back', entry.value.regBackUrl),
+                  _buildDocumentCard(
+                    'Registration Front',
+                    entry.value.regFrontUrl,
+                  ),
+                  _buildDocumentCard(
+                    'Registration Back',
+                    entry.value.regBackUrl,
+                  ),
                 ]),
               ),
 

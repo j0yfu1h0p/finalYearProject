@@ -7,7 +7,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/mechanic_socket_service.dart';
 import '../../services/api_services.dart';
+import '../../services/review_service.dart';
 import '../../utils/refresh_button_widget.dart';
+import '../../widgets/user_review_prompt_sheet.dart';
 import 'driver_requests_dashboard.dart';
 import '../trip_chat_screen.dart';
 
@@ -42,6 +44,8 @@ class _UserTrackScreenMechState extends State<UserTrackScreenMech> {
   bool _isFetchingProfile = false;
   bool _isInitialized = false;
   StreamSubscription<Position>? _positionSubscription;
+  bool _hasPromptedCustomerReview = false;
+  bool _hasHandledCompletionFlow = false;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   StreamController<String> _statusStreamController =
@@ -62,8 +66,10 @@ class _UserTrackScreenMechState extends State<UserTrackScreenMech> {
     );
 
     // Set up status stream listener
-    _statusStreamController.stream.listen((status) {
-      if (status == 'completed' || status == 'cancelled') {
+    _statusStreamController.stream.listen((status) async {
+      if (status == 'completed') {
+        await _handleCompletedNavigation();
+      } else if (status == 'cancelled') {
         _navigateToHomeScreen();
       }
     });
@@ -562,6 +568,18 @@ class _UserTrackScreenMechState extends State<UserTrackScreenMech> {
     });
   }
 
+  Future<void> _handleCompletedNavigation() async {
+    if (_hasHandledCompletionFlow) return;
+    _hasHandledCompletionFlow = true;
+
+    if (!_hasPromptedCustomerReview) {
+      await _promptCustomerReviewAfterMechanicJob();
+    }
+    if (mounted) {
+      _navigateToHomeScreen();
+    }
+  }
+
   Future<void> _updateServiceStatus(String newStatus) async {
     setState(() {
       _isLoading = true;
@@ -1038,6 +1056,34 @@ class _UserTrackScreenMechState extends State<UserTrackScreenMech> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _promptCustomerReviewAfterMechanicJob() async {
+    if (_hasPromptedCustomerReview || !mounted) return;
+
+    final requestId =
+        widget.serviceRequest['_id']?.toString() ??
+        widget.serviceRequest['id']?.toString();
+    if (requestId == null || requestId.isEmpty) {
+      _hasPromptedCustomerReview = true;
+      return;
+    }
+
+    _hasPromptedCustomerReview = true;
+
+    await showUserReviewPromptSheet(
+      context: context,
+      title: 'How was the customer?',
+      subtitle: 'Share brief feedback so we can keep service quality high.',
+      accentColor: Colors.black,
+      submitLabel: 'Send feedback',
+      onSubmit: (rating, comment) =>
+          ReviewService.submitUserReviewForMechanicJob(
+            requestId,
+            rating,
+            comment: comment,
+          ),
     );
   }
 

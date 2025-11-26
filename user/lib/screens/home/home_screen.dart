@@ -129,6 +129,8 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              const Divider(height: 0.5),
+              _buildSupportSection(),
             ],
           ),
           if (homeProvider.isLoggingOut) _buildLogoutOverlay(),
@@ -146,16 +148,72 @@ class HomeScreen extends StatelessWidget {
       leading: Icon(icon, color: Colors.black),
       title: Text(
         title,
-        style: const TextStyle(
-          color: Colors.black,
-          fontFamily: "UberMove",
-        ),
+        style: const TextStyle(color: Colors.black, fontFamily: "UberMove"),
       ),
       onTap: onTap,
     );
   }
 
-  Future<void> _handleLogout(BuildContext context, HomeProvider provider) async {
+  Widget _buildSupportSection() {
+    const supportPhone = '+92-316-9977808';
+    const supportEmail = 'support@myautobridge.com';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Need help?',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'UberMove',
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Reach our support team anytime.',
+            style: TextStyle(color: Colors.black54, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.phone, color: Colors.black87, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                supportPhone,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontFamily: 'UberMove',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.email, color: Colors.black87, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                supportEmail,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontFamily: 'UberMove',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleLogout(
+    BuildContext context,
+    HomeProvider provider,
+  ) async {
     provider.setLoggingOut(true);
 
     try {
@@ -167,7 +225,7 @@ class HomeScreen extends StatelessWidget {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const ContinueWithPhone()),
-            (route) => false,
+        (route) => false,
       );
     } catch (error) {
       if (context.mounted) {
@@ -207,8 +265,12 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBody(BuildContext context, HomeProvider homeProvider,
-      double cardHeight, double imageHeight) {
+  Widget _buildBody(
+    BuildContext context,
+    HomeProvider homeProvider,
+    double cardHeight,
+    double imageHeight,
+  ) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,8 +364,11 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildServicesSection(BuildContext context, double cardHeight,
-      double imageHeight) {
+  Widget _buildServicesSection(
+    BuildContext context,
+    double cardHeight,
+    double imageHeight,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
@@ -400,10 +465,7 @@ class HomeScreen extends StatelessWidget {
                 height: imageHeight,
                 child: InkWell(
                   onTap: onTap,
-                  child: Image.asset(
-                    imagePath,
-                    fit: BoxFit.contain,
-                  ),
+                  child: Image.asset(imagePath, fit: BoxFit.contain),
                 ),
               ),
             ],

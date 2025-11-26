@@ -20,7 +20,7 @@ const driverSchema = new mongoose.Schema({
     unique: true,
     match: /^\+92\d{10}$/,
   },
-  otp: { 
+  otp: {
     type: String,
     select: false
   },
@@ -36,7 +36,7 @@ const driverSchema = new mongoose.Schema({
     profile_photo_url: String,
     registration_status: {
       type: String,
-      enum: ["uncertain","pending", "approved", "rejected"],
+      enum: ["uncertain", "pending", "approved", "rejected"],
       default: "uncertain"
     },
     registration_date: { type: Date, default: Date.now },
@@ -54,15 +54,24 @@ const driverSchema = new mongoose.Schema({
     expiry_date: Date,
     verified: { type: Boolean, default: false }
   },
-  vehicles: [vehicleSchema]
+  vehicles: [vehicleSchema],
+  rating: {
+    type: Number,
+    default: 0
+  },
+  ratingCount: {
+    type: Number,
+    default: 0
+  },
+  lastReviewAt: { type: Date }
 }, { timestamps: true });
 
 // Add adminActions to the schema
 // Update the adminActions schema to be more flexible
 driverSchema.add({
   adminActions: [{
-    action: { 
-      type: String, 
+    action: {
+      type: String,
       enum: ['approved', 'rejected', 'updated'],
       required: true
     },
@@ -75,9 +84,9 @@ driverSchema.add({
       enum: ['system', 'user'],
       default: 'user'
     },
-    timestamp: { 
-      type: Date, 
-      default: Date.now 
+    timestamp: {
+      type: Date,
+      default: Date.now
     },
     notes: {
       type: String,

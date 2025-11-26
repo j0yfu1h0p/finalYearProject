@@ -11,8 +11,10 @@ import 'package:http/http.dart' as http;
 import 'package:audioplayers/audioplayers.dart';
 
 import '../../../services/auth_service.dart';
+import '../../../services/review_service.dart';
 import '../../../utils/refresh_button_widget.dart';
 import '../../../utils/snackbar_util.dart';
+import '../../../widgets/review_prompt_sheet.dart';
 import 'mechanic_socket_service.dart';
 
 class MechanicTrackingScreen extends StatefulWidget {
@@ -34,7 +36,6 @@ class MechanicTrackingScreen extends StatefulWidget {
 class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
   final MapController _mapController = MapController();
   LatLng? _driverLocation;
-  bool _isLoading = false;
   String _tripStatus = 'accepted';
   Timer? _locationUpdateTimer;
   bool _isDisposed = false;
@@ -42,12 +43,14 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
   LatLng? _liveDriverLocation;
   LatLngBounds? _routeBounds;
   Map<String, dynamic>? _driverProfile;
-  bool _isFetchingProfile = false;
   bool _isInitialized = false;
   Map<String, dynamic>? _requestData;
-  String _pickupLocationName = 'Your current location';
   String _pickupAddress = 'Loading address...';
   bool _isFetchingAddress = false;
+  final ReviewService _reviewService = ReviewService();
+  bool _hasShownReviewPrompt = false;
+  bool _hasSubmittedReview = false;
+  String? _existingReviewId;
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isSoundEnabled = true;
@@ -56,7 +59,8 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
   Timer? _notificationTimer;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  StreamController<String> _statusStreamController = StreamController<String>.broadcast();
+  StreamController<String> _statusStreamController =
+      StreamController<String>.broadcast();
 
   final Map<String, Map<String, dynamic>> _statusConfig = {
     'accepted': {
@@ -105,7 +109,9 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
     );
 
     _statusStreamController.stream.listen((status) {
-      if (status == 'completed' || status == 'cancelled') {
+      if (status == 'completed') {
+        _handleMechanicCompleted();
+      } else if (status == 'cancelled') {
         _navigateToHomeScreen();
       }
     });
@@ -115,14 +121,13 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
 
   void _initializeScreen() {
     _requestData = widget.serviceRequest;
-
-    if (widget.routeData['pickupLocation'] != null) {
-      _pickupLocationName = widget.routeData['pickupLocation'];
-    }
+    _existingReviewId = widget.serviceRequest['reviewId']?.toString();
 
     if (mounted) {
       setState(() {
-        _driverProfile = _createDriverProfileFromMechanicData(widget.mechanicData);
+        _driverProfile = _createDriverProfileFromMechanicData(
+          widget.mechanicData,
+        );
         _tripStatus = _requestData?['status'] ?? 'accepted';
         _isInitialized = true;
       });
@@ -134,7 +139,9 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
 
   Future<void> _fetchAddressFromCoordinates() async {
     final userLocation = _requestData?['userLocation'];
-    final coordinates = userLocation != null ? userLocation['coordinates'] : null;
+    final coordinates = userLocation != null
+        ? userLocation['coordinates']
+        : null;
 
     if (coordinates is List && coordinates.length >= 2) {
       final lng = coordinates[0]?.toDouble();
@@ -175,13 +182,14 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
 
   Future<String> _reverseGeocode(LatLng location) async {
     final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&zoom=18&addressdetails=1'
+      'https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}&zoom=18&addressdetails=1',
     );
 
     try {
-      final response = await http.get(url, headers: {
-        'User-Agent': 'YourAppName/1.0'
-      });
+      final response = await http.get(
+        url,
+        headers: {'User-Agent': 'YourAppName/1.0'},
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -198,11 +206,19 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
     }
   }
 
-  Map<String, dynamic> _createDriverProfileFromMechanicData(Map<String, dynamic> mechanicData) {
+  Map<String, dynamic> _createDriverProfileFromMechanicData(
+    Map<String, dynamic> mechanicData,
+  ) {
     final profile = {
       'personal_info': {
-        'name': mechanicData['name'] ?? mechanicData['personName'] ?? 'Unknown Mechanic',
-        'phone': mechanicData['phone'] ?? mechanicData['phoneNumber'] ?? '+1234567890',
+        'name':
+            mechanicData['name'] ??
+            mechanicData['personName'] ??
+            'Unknown Mechanic',
+        'phone':
+            mechanicData['phone'] ??
+            mechanicData['phoneNumber'] ??
+            '+1234567890',
         'avatar': mechanicData['personalPhotoUrl'],
       },
       'service_type': _requestData?['serviceType'] ?? 'Car Service',
@@ -210,7 +226,9 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
       'price': _requestData?['priceQuote'] != null
           ? '${_requestData?['priceQuote']['amount'] ?? '75'} ${_requestData?['priceQuote']['currency'] ?? 'PKR'}'
           : '75 PKR',
-      'notes': _requestData?['notes'] ?? 'Please have your vehicle ready for inspection',
+      'notes':
+          _requestData?['notes'] ??
+          'Please have your vehicle ready for inspection',
       'eta': '15-20 mins',
     };
 
@@ -219,18 +237,23 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
 
   void _initSocket() async {
     try {
-      if (MechanicSocketService.socket == null || !(MechanicSocketService.socket?.connected ?? false)) {
+      if (MechanicSocketService.socket == null ||
+          !(MechanicSocketService.socket?.connected ?? false)) {
         await MechanicSocketService.initializeSocket();
       }
 
-      final mechanicId = (widget.mechanicData['_id'] ?? widget.mechanicData['id'])?.toString();
-      final requestId = (_requestData?['_id'] ?? _requestData?['id'])?.toString();
+      final mechanicId =
+          (widget.mechanicData['_id'] ?? widget.mechanicData['id'])?.toString();
+      final requestId = (_requestData?['_id'] ?? _requestData?['id'])
+          ?.toString();
 
       if (mechanicId != null && requestId != null) {
         MechanicSocketService.joinMechanicTracking(mechanicId, requestId);
       }
 
-      if ((_tripStatus == 'arrived' || _tripStatus == 'in-progress') && mounted && !_isDisposed) {
+      if ((_tripStatus == 'arrived' || _tripStatus == 'in-progress') &&
+          mounted &&
+          !_isDisposed) {
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted && !_isDisposed) {
             _showStatusNotification(_tripStatus);
@@ -257,16 +280,20 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
           final rejoinMechanicId = map['mechanicId']?.toString();
 
           if (rejoinRequestId != null && rejoinMechanicId != null) {
-            MechanicSocketService.joinMechanicTracking(rejoinMechanicId, rejoinRequestId);
+            MechanicSocketService.joinMechanicTracking(
+              rejoinMechanicId,
+              rejoinRequestId,
+            );
           }
-        } catch (e) {
-        }
+        } catch (e) {}
       });
 
       MechanicSocketService.socket?.on('mechanic_location_update', (data) {
         try {
           final map = data is Map ? Map<String, dynamic>.from(data) : {};
-          final loc = map['location'] is Map ? Map<String, dynamic>.from(map['location']) : {};
+          final loc = map['location'] is Map
+              ? Map<String, dynamic>.from(map['location'])
+              : {};
           final lat = double.tryParse(loc['lat']?.toString() ?? '');
           final lng = double.tryParse(loc['lng']?.toString() ?? '');
 
@@ -283,8 +310,7 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
               }
             });
           }
-        } catch (e) {
-        }
+        } catch (e) {}
       });
 
       MechanicSocketService.socket?.on('mechanic_status_update', (data) {
@@ -301,8 +327,7 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
               _showStatusNotification(status);
             }
           }
-        } catch (e) {
-        }
+        } catch (e) {}
       });
 
       MechanicSocketService.socket?.on('mechanic_request_update', (data) {
@@ -325,12 +350,9 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
               _requestData = Map<String, dynamic>.from(map['requestData']);
             });
           }
-        } catch (e) {
-        }
+        } catch (e) {}
       });
-
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   void _showStatusNotification(String status) {
@@ -366,12 +388,16 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
           default:
             SystemSound.play(SystemSoundType.click);
         }
-      } catch (systemError) {
-      }
+      } catch (systemError) {}
     }
   }
 
-  void _showOverlayNotification(String title, String message, Color color, IconData icon) {
+  void _showOverlayNotification(
+    String title,
+    String message,
+    Color color,
+    IconData icon,
+  ) {
     _hideOverlayNotification();
 
     _notificationOverlay = OverlayEntry(
@@ -455,7 +481,10 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
     );
 
     Overlay.of(context).insert(_notificationOverlay!);
-    _notificationTimer = Timer(const Duration(seconds: 5), _hideOverlayNotification);
+    _notificationTimer = Timer(
+      const Duration(seconds: 5),
+      _hideOverlayNotification,
+    );
   }
 
   void _hideOverlayNotification() {
@@ -491,20 +520,85 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
       if (!_isDisposed && mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const HomeScreen()),
-              (route) => false,
+          (route) => false,
         );
       }
       _isNavigating = false;
     });
   }
 
-  Future<void> _cancelTrip() async {
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _handleMechanicCompleted() async {
+    if (_hasSubmittedReview || _existingReviewId != null) {
+      _navigateToHomeScreen();
+      return;
+    }
 
+    if (_hasShownReviewPrompt || _isDisposed || !mounted) {
+      _navigateToHomeScreen();
+      return;
+    }
+
+    _hasShownReviewPrompt = true;
+
+    final mechanicName =
+        widget.mechanicData['name'] ??
+        widget.mechanicData['personName'] ??
+        widget.mechanicData['shopName'] ??
+        'Your mechanic';
+    final mechanicLabel =
+        widget.serviceRequest['serviceType'] ??
+        widget.mechanicData['shopName'] ??
+        'Mechanic';
+    final avatarUrl = widget.mechanicData['personalPhotoUrl']?.toString();
+    final requestId =
+        widget.serviceRequest['_id']?.toString() ??
+        widget.serviceRequest['id']?.toString();
+
+    if (requestId == null) {
+      SnackBarUtil.showError(context, 'Missing service information.');
+      _navigateToHomeScreen();
+      return;
+    }
+
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return ReviewPromptSheet(
+          title: 'Rate your mechanic',
+          subtitle:
+              'Share quick feedback so we can keep trusted pros on standby.',
+          subjectName: mechanicName,
+          subjectRole: mechanicLabel is String ? mechanicLabel : 'Mechanic',
+          avatarUrl: avatarUrl,
+          accentColor: Colors.blueAccent,
+          onSubmit: (rating, comment) async {
+            await _reviewService.submitMechanicReview(
+              requestId: requestId,
+              rating: rating,
+              comment: comment,
+            );
+            _existingReviewId = 'submitted';
+            _hasSubmittedReview = true;
+            if (mounted) {
+              SnackBarUtil.showSuccess(
+                context,
+                'Thanks for reviewing your mechanic!',
+              );
+            }
+          },
+        );
+      },
+    );
+
+    _navigateToHomeScreen();
+  }
+
+  Future<void> _cancelTrip() async {
     try {
-      final requestId = (_requestData?['_id'] ?? _requestData?['id'])?.toString();
+      final requestId = (_requestData?['_id'] ?? _requestData?['id'])
+          ?.toString();
 
       if (requestId == null) {
         throw Exception('Request ID not found');
@@ -528,8 +622,6 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
       );
 
       if (response.statusCode == 200) {
-        final responseData = response.data;
-
         if (!_isDisposed && mounted) {
           _showSnackBar('Service request cancelled', Colors.green);
           setState(() {
@@ -539,22 +631,31 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
           _showStatusNotification('cancelled');
           _statusStreamController.add('cancelled');
 
-          final mechanicId = (widget.mechanicData['_id'] ?? widget.mechanicData['id'])?.toString();
+          final mechanicId =
+              (widget.mechanicData['_id'] ?? widget.mechanicData['id'])
+                  ?.toString();
           if (mechanicId != null) {
-            MechanicSocketService.emitMechanicCancelledJob(requestId, mechanicId);
+            MechanicSocketService.emitMechanicCancelledJob(
+              requestId,
+              mechanicId,
+            );
           }
         }
       } else {
-        throw Exception('Failed to cancel service request: ${response.statusCode}');
+        throw Exception(
+          'Failed to cancel service request: ${response.statusCode}',
+        );
       }
     } on DioException catch (dioError) {
       String errorMessage = 'Network error occurred';
 
       if (dioError.response != null) {
-        if (dioError.response!.data is String && dioError.response!.data.contains('<!DOCTYPE html>')) {
+        if (dioError.response!.data is String &&
+            dioError.response!.data.contains('<!DOCTYPE html>')) {
           errorMessage = 'Server error: Please check the API endpoint';
         } else if (dioError.response!.data is Map) {
-          errorMessage = dioError.response!.data['message'] ?? 'Server error occurred';
+          errorMessage =
+              dioError.response!.data['message'] ?? 'Server error occurred';
         }
       } else if (dioError.type == DioExceptionType.connectionTimeout) {
         errorMessage = 'Connection timeout';
@@ -571,12 +672,6 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
       if (!_isDisposed && mounted) {
         _showSnackBar('Error: ${error.toString()}', Colors.red);
       }
-    } finally {
-      if (!_isDisposed && mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
@@ -586,7 +681,9 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Cancel Service'),
-          content: const Text('Are you sure you want to cancel this service request?'),
+          content: const Text(
+            'Are you sure you want to cancel this service request?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -654,40 +751,58 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
     }
 
     final userLocation = _requestData?['userLocation'];
-    final coordinates = userLocation != null ? userLocation['coordinates'] : null;
-    final userLat = coordinates != null && coordinates.length >= 2 ? coordinates[1].toDouble() : null;
-    final userLng = coordinates != null && coordinates.length >= 2 ? coordinates[0].toDouble() : null;
+    final coordinates = userLocation != null
+        ? userLocation['coordinates']
+        : null;
+    final userLat = coordinates != null && coordinates.length >= 2
+        ? coordinates[1].toDouble()
+        : null;
+    final userLng = coordinates != null && coordinates.length >= 2
+        ? coordinates[0].toDouble()
+        : null;
 
     List<LatLng> routePoints = [];
     if (userLat != null && userLng != null && _liveDriverLocation != null) {
       final userLocationPoint = LatLng(userLat, userLng);
       routePoints.addAll([_liveDriverLocation!, userLocationPoint]);
-      _routeBounds = LatLngBounds.fromPoints([userLocationPoint, _liveDriverLocation!]);
+      _routeBounds = LatLngBounds.fromPoints([
+        userLocationPoint,
+        _liveDriverLocation!,
+      ]);
     }
 
     return WillPopScope(
       onWillPop: () async {
-        if (_tripStatus == 'completed' || _tripStatus == 'cancelled') {
+        if (_tripStatus == 'completed') {
+          _handleMechanicCompleted();
+          return false;
+        }
+
+        if (_tripStatus == 'cancelled') {
           return true;
         }
 
-        bool shouldExit = await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Cancel Service?'),
-            content: const Text('Are you sure you want to cancel this service and go back?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('No'),
+        bool shouldExit =
+            await showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Cancel Service?'),
+                content: const Text(
+                  'Are you sure you want to cancel this service and go back?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('No'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Yes'),
+                  ),
+                ],
               ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Yes'),
-              ),
-            ],
-          ),
-        ) ?? false;
+            ) ??
+            false;
 
         if (shouldExit) {
           _cancelTrip();
@@ -716,7 +831,8 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                       key: ValueKey(_driverLocation?.toString()),
                       mapController: _mapController,
                       options: MapOptions(
-                        initialCenter: _driverLocation ?? const LatLng(33.6495, 72.9767),
+                        initialCenter:
+                            _driverLocation ?? const LatLng(33.6495, 72.9767),
                         initialZoom: 15,
                         interactionOptions: const InteractionOptions(
                           flags: InteractiveFlag.all,
@@ -724,7 +840,8 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                          urlTemplate:
+                              "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                           userAgentPackageName: 'com.example.user',
                         ),
                         if (routePoints.length >= 2)
@@ -755,7 +872,11 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                                 point: _liveDriverLocation!,
                                 width: 40,
                                 height: 40,
-                                child: const Icon(Icons.directions_car, color: Colors.green, size: 40),
+                                child: const Icon(
+                                  Icons.directions_car,
+                                  color: Colors.green,
+                                  size: 40,
+                                ),
                               ),
                           ],
                         ),
@@ -779,9 +900,14 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                               ],
                             ),
                             child: IconButton(
-                              icon: const Icon(Icons.arrow_back, color: Colors.black),
+                              icon: const Icon(
+                                Icons.arrow_back,
+                                color: Colors.black,
+                              ),
                               onPressed: () {
-                                if (_tripStatus == 'completed' || _tripStatus == 'cancelled') {
+                                if (_tripStatus == 'completed') {
+                                  _handleMechanicCompleted();
+                                } else if (_tripStatus == 'cancelled') {
                                   _navigateToHomeScreen();
                                 } else {
                                   _showCancelDialog();
@@ -805,10 +931,16 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                             child: RefreshButtonWidget(
                               onRefresh: () {
                                 setState(() {
-                                  _driverProfile = _createDriverProfileFromMechanicData(widget.mechanicData);
+                                  _driverProfile =
+                                      _createDriverProfileFromMechanicData(
+                                        widget.mechanicData,
+                                      );
                                 });
                                 _fetchAddressFromCoordinates();
-                                SnackBarUtil.showSuccess(context, 'Refreshing mechanic information...');
+                                SnackBarUtil.showSuccess(
+                                  context,
+                                  'Refreshing mechanic information...',
+                                );
                               },
                               iconColor: Colors.black,
                               iconSize: 24,
@@ -834,7 +966,10 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                           ],
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.my_location, color: Colors.black),
+                          icon: const Icon(
+                            Icons.my_location,
+                            color: Colors.black,
+                          ),
                           onPressed: () {
                             if (_routeBounds != null) {
                               _mapController.fitCamera(
@@ -853,9 +988,7 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                   ],
                 ),
               ),
-              Expanded(
-                child: _buildDriverDetailsPanel(),
-              ),
+              Expanded(child: _buildDriverDetailsPanel()),
             ],
           ),
         ),
@@ -939,11 +1072,21 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                           CircleAvatar(
                             radius: 30,
                             backgroundColor: Colors.grey[300],
-                            backgroundImage: _driverProfile?['personal_info']?['avatar'] != null
-                                ? NetworkImage(_driverProfile!['personal_info']['avatar'])
+                            backgroundImage:
+                                _driverProfile?['personal_info']?['avatar'] !=
+                                    null
+                                ? NetworkImage(
+                                    _driverProfile!['personal_info']['avatar'],
+                                  )
                                 : null,
-                            child: _driverProfile?['personal_info']?['avatar'] == null
-                                ? const Icon(Icons.person, size: 30, color: Colors.white)
+                            child:
+                                _driverProfile?['personal_info']?['avatar'] ==
+                                    null
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 30,
+                                    color: Colors.white,
+                                  )
                                 : null,
                           ),
                           const SizedBox(width: 16),
@@ -952,7 +1095,8 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _driverProfile?['personal_info']?['name'] ?? 'Mechanic Name',
+                                  _driverProfile?['personal_info']?['name'] ??
+                                      'Mechanic Name',
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -962,7 +1106,8 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  _driverProfile?['personal_info']?['phone'] ?? '+1234567890',
+                                  _driverProfile?['personal_info']?['phone'] ??
+                                      '+1234567890',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey,
@@ -985,11 +1130,16 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.build, color: Colors.blue[700], size: 24),
+                                Icon(
+                                  Icons.build,
+                                  color: Colors.blue[700],
+                                  size: 24,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         'Service Type',
@@ -1001,7 +1151,8 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        _driverProfile?['service_type'] ?? 'Car Service',
+                                        _driverProfile?['service_type'] ??
+                                            'Car Service',
                                         style: const TextStyle(
                                           fontSize: 16,
                                           color: Colors.black,
@@ -1019,11 +1170,16 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.access_time, color: Colors.orange[700], size: 24),
+                                Icon(
+                                  Icons.access_time,
+                                  color: Colors.orange[700],
+                                  size: 24,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         'Estimated Time',
@@ -1055,7 +1211,11 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.attach_money, color: Colors.green[700], size: 24),
+                          Icon(
+                            Icons.attach_money,
+                            color: Colors.green[700],
+                            size: 24,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -1088,7 +1248,11 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.location_on, color: Colors.red[700], size: 24),
+                          Icon(
+                            Icons.location_on,
+                            color: Colors.red[700],
+                            size: 24,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -1105,20 +1269,22 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                                 const SizedBox(height: 4),
                                 _isFetchingAddress
                                     ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
                                     : Text(
-                                  _pickupAddress,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.black,
-                                    fontFamily: 'UberMove',
-                                  ),
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                        _pickupAddress,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.black,
+                                          fontFamily: 'UberMove',
+                                        ),
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                               ],
                             ),
                           ),
@@ -1145,7 +1311,8 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  _driverProfile?['notes'] ?? 'Please have your vehicle ready for inspection',
+                                  _driverProfile?['notes'] ??
+                                      'Please have your vehicle ready for inspection',
                                   style: const TextStyle(
                                     fontSize: 16,
                                     color: Colors.black,
@@ -1225,8 +1392,7 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       final phone = _driverProfile?['personal_info']?['phone'];
-                      if (phone != null) {
-                      }
+                      if (phone != null) {}
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
@@ -1252,16 +1418,18 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _navigateToHomeScreen,
+                onPressed: _tripStatus == 'completed'
+                    ? _handleMechanicCompleted
+                    : _navigateToHomeScreen,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _tripStatus == 'completed' ? Colors.green : Colors.red,
+                  backgroundColor: _tripStatus == 'completed'
+                      ? Colors.green
+                      : Colors.red,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  padding: EdgeInsets.symmetric(
-                    vertical: screenHeight * 0.018,
-                  ),
+                  padding: EdgeInsets.symmetric(vertical: screenHeight * 0.018),
                   textStyle: const TextStyle(
                     fontFamily: 'UberMove',
                     fontWeight: FontWeight.bold,
@@ -1269,7 +1437,9 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
                   ),
                 ),
                 child: Text(
-                  _tripStatus == 'completed' ? 'Return to Home' : 'Service Cancelled',
+                  _tripStatus == 'completed'
+                      ? 'Return to Home'
+                      : 'Service Cancelled',
                 ),
               ),
             ),
@@ -1278,6 +1448,7 @@ class _MechanicTrackingScreenState extends State<MechanicTrackingScreen> {
       ),
     );
   }
+
   Color _getStatusColor(String status) {
     switch (status) {
       case 'accepted':

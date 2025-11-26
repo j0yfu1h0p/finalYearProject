@@ -69,6 +69,15 @@ const mechanicSchema = new mongoose.Schema({
         enum: Object.values(REGISTRATION_STATUS),
         default: REGISTRATION_STATUS.UNCERTAIN
     },
+    rating: {
+        type: Number,
+        default: 0
+    },
+    ratingCount: {
+        type: Number,
+        default: 0
+    },
+    lastReviewAt: { type: Date },
     isActive: { type: Boolean, default: true },
     createdAt: { type: Date, default: Date.now }
 }, { toJSON: { getters: true }, toObject: { getters: true } });

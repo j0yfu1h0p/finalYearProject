@@ -73,7 +73,7 @@ exports.verifyDriverOTP = async (req, res) => {
       const Mechanic = require('../models/Mechanic');
       const mech = await Mechanic.findOne({ phoneNumber }).select('_id');
       if (mech) { roles.push('mechanic'); mechanicId = mech._id; }
-    } catch (_) { /* ignore */ }
+    } catch (_) { }
     const tokenPayload = {
       id: driver._id,
       role: 'driver',

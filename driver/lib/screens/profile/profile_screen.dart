@@ -12,7 +12,8 @@ class ProfilePageScreen extends StatefulWidget {
   _ProfilePageScreenState createState() => _ProfilePageScreenState();
 }
 
-class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTickerProviderStateMixin {
+class _ProfilePageScreenState extends State<ProfilePageScreen>
+    with SingleTickerProviderStateMixin {
   Map<String, dynamic> driverProfile = {};
   Map<String, dynamic> mechanicProfile = {};
   bool isLoading = true;
@@ -44,9 +45,9 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
 
       // Initialize tab controller with the number of available tabs
       _tabController = TabController(
-          length: availableTabs.length,
-          vsync: this,
-          initialIndex: 0
+        length: availableTabs.length,
+        vsync: this,
+        initialIndex: 0,
       );
     });
 
@@ -74,13 +75,14 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
       // Fetch driver profile if driver status is approved
       if (driverStatus == 'approved') {
         final driverResponse = await http.get(
-          Uri.parse('https://smiling-sparrow-proper.ngrok-free.app/api/driver/profile'),
+          Uri.parse(
+            'https://smiling-sparrow-proper.ngrok-free.app/api/driver/profile',
+          ),
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           },
         );
-
 
         if (driverResponse.statusCode == 200) {
           final data = json.decode(driverResponse.body);
@@ -90,12 +92,14 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
             if (data['personal_info'] != null &&
                 data['personal_info']['profile_photo_url'] != null &&
                 data['personal_info']['profile_photo_url'].isNotEmpty) {
-              driverProfilePhotoUrl = data['personal_info']['profile_photo_url'];
+              driverProfilePhotoUrl =
+                  data['personal_info']['profile_photo_url'];
             }
           });
         } else {
           setState(() {
-            errorMessage = 'Failed to load driver profile: ${driverResponse.statusCode}';
+            errorMessage =
+                'Failed to load driver profile: ${driverResponse.statusCode}';
           });
         }
       }
@@ -103,13 +107,14 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
       // Fetch mechanic profile if mechanic status is approved
       if (mechanicStatus == 'approved') {
         final mechanicResponse = await http.get(
-          Uri.parse('https://smiling-sparrow-proper.ngrok-free.app/api/mechanic/profile'),
+          Uri.parse(
+            'https://smiling-sparrow-proper.ngrok-free.app/api/mechanic/profile',
+          ),
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           },
         );
-
 
         if (mechanicResponse.statusCode == 200) {
           final data = json.decode(mechanicResponse.body);
@@ -123,7 +128,8 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
           });
         } else {
           setState(() {
-            errorMessage = 'Failed to load mechanic profile: ${mechanicResponse.statusCode}';
+            errorMessage =
+                'Failed to load mechanic profile: ${mechanicResponse.statusCode}';
           });
         }
       }
@@ -159,12 +165,12 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
         iconTheme: const IconThemeData(color: Colors.black),
         bottom: availableTabs.length > 1
             ? TabBar(
-          controller: _tabController,
-          labelColor: Colors.black,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.black,
-          tabs: availableTabs.map((tab) => Tab(text: tab)).toList(),
-        )
+                controller: _tabController,
+                labelColor: Colors.black,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: Colors.black,
+                tabs: availableTabs.map((tab) => Tab(text: tab)).toList(),
+              )
             : null,
       ),
       body: isLoading
@@ -173,12 +179,12 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
           ? Center(child: Text('Error: $errorMessage'))
           : availableTabs.length > 1
           ? TabBarView(
-        controller: _tabController,
-        children: availableTabs.map((tab) {
-          if (tab == 'Driver') return _buildDriverProfile();
-          return _buildMechanicProfile();
-        }).toList(),
-      )
+              controller: _tabController,
+              children: availableTabs.map((tab) {
+                if (tab == 'Driver') return _buildDriverProfile();
+                return _buildMechanicProfile();
+              }).toList(),
+            )
           : _buildProfileForSingleRole(),
     );
   }
@@ -221,8 +227,12 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
     final identification = driverProfile['identification'] ?? {};
     final license = driverProfile['license'] ?? {};
     final vehicles = driverProfile['vehicles'] ?? [];
-
-
+    final double? driverRating = _parseAverage(
+      driverProfile['rating'] ?? driverProfile['averageRating'],
+    );
+    final int? driverReviewCount = _parseReviewCount(
+      driverProfile['ratingCount'] ?? driverProfile['rating_count'],
+    );
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -236,10 +246,7 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.grey.shade300,
-                width: 1,
-              ),
+              border: Border.all(color: Colors.grey.shade300, width: 1),
             ),
             child: Column(
               children: [
@@ -248,10 +255,7 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.grey.shade400,
-                      width: 1.5,
-                    ),
+                    border: Border.all(color: Colors.grey.shade400, width: 1.5),
                   ),
                   child: CircleAvatar(
                     radius: 40,
@@ -261,10 +265,10 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                         : null,
                     child: driverProfilePhotoUrl == null
                         ? const Icon(
-                      Icons.person,
-                      size: 40,
-                      color: Colors.white,
-                    )
+                            Icons.person,
+                            size: 40,
+                            color: Colors.white,
+                          )
                         : null,
                   ),
                 ),
@@ -274,7 +278,10 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                 _buildInfoCard(
                   icon: Icons.person_outline,
                   title: "Name",
-                  value: "${personalInfo['first_name'] ?? ''} ${personalInfo['last_name'] ?? ''}".trim().isEmpty
+                  value:
+                      "${personalInfo['first_name'] ?? ''} ${personalInfo['last_name'] ?? ''}"
+                          .trim()
+                          .isEmpty
                       ? "Not provided"
                       : "${personalInfo['first_name'] ?? ''} ${personalInfo['last_name'] ?? ''}",
                 ),
@@ -284,7 +291,9 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                 _buildInfoCard(
                   icon: Icons.phone_outlined,
                   title: "Phone",
-                  value: driverProfile['phoneNumber']?.toString() ?? "Not provided",
+                  value:
+                      driverProfile['phoneNumber']?.toString() ??
+                      "Not provided",
                 ),
                 const SizedBox(height: 12),
 
@@ -312,7 +321,9 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                 _buildInfoCard(
                   icon: Icons.credit_card_outlined,
                   title: "CNIC",
-                  value: identification['cnic_number']?.toString() ?? "Not provided",
+                  value:
+                      identification['cnic_number']?.toString() ??
+                      "Not provided",
                 ),
                 const SizedBox(height: 12),
 
@@ -320,7 +331,8 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                 _buildInfoCard(
                   icon: Icons.drive_eta_outlined,
                   title: "License Number",
-                  value: license['license_number']?.toString() ?? "Not provided",
+                  value:
+                      license['license_number']?.toString() ?? "Not provided",
                 ),
                 const SizedBox(height: 12),
 
@@ -337,6 +349,16 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
           ),
 
           const SizedBox(height: 16),
+          _buildRatingSummary(
+            averageRating: driverRating,
+            reviewCount: driverReviewCount,
+            accentColor: Colors.amber,
+            label: 'Driver rating',
+            helperText: driverReviewCount != null && driverReviewCount > 0
+                ? 'Your average updates after every completed trip.'
+                : 'Complete more trips to build your public rating.',
+          ),
+          const SizedBox(height: 16),
 
           // Documents Section
           if (identification['cnic_front_url'] != null ||
@@ -348,10 +370,7 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.grey.shade300,
-                  width: 1,
-                ),
+                border: Border.all(color: Colors.grey.shade300, width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,11 +388,17 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
 
                   // CNIC Front
                   if (identification['cnic_front_url'] != null)
-                    _buildDocumentItem("CNIC Front", identification['cnic_front_url']),
+                    _buildDocumentItem(
+                      "CNIC Front",
+                      identification['cnic_front_url'],
+                    ),
 
                   // CNIC Back
                   if (identification['cnic_back_url'] != null)
-                    _buildDocumentItem("CNIC Back", identification['cnic_back_url']),
+                    _buildDocumentItem(
+                      "CNIC Back",
+                      identification['cnic_back_url'],
+                    ),
 
                   // License Photo
                   if (license['license_photo_url'] != null)
@@ -392,10 +417,7 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.grey.shade300,
-                  width: 1,
-                ),
+                border: Border.all(color: Colors.grey.shade300, width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -418,7 +440,10 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                         _buildVehicleInfo("Model", vehicle['company_model']),
                         _buildVehicleInfo("Color", vehicle['color']),
                         _buildVehicleInfo("Plate", vehicle['number_plate']),
-                        _buildVehicleInfo("Year", vehicle['manufacturing_year']),
+                        _buildVehicleInfo(
+                          "Year",
+                          vehicle['manufacturing_year'],
+                        ),
                         if (vehicles.length > 1) const SizedBox(height: 12),
                       ],
                     );
@@ -436,10 +461,7 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.grey.shade300,
-                width: 1,
-              ),
+              border: Border.all(color: Colors.grey.shade300, width: 1),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,13 +476,22 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                   ),
                 ),
                 const SizedBox(height: 8),
-                _buildRegistrationInfo("Status", personalInfo['registration_status'] ?? "Unknown"),
-                _buildRegistrationInfo("Date", personalInfo['registration_date'] != null
-                    ? _formatDate(personalInfo['registration_date'])
-                    : "Not available"),
-                _buildRegistrationInfo("Last Updated", personalInfo['last_updated'] != null
-                    ? _formatDate(personalInfo['last_updated'])
-                    : "Not available"),
+                _buildRegistrationInfo(
+                  "Status",
+                  personalInfo['registration_status'] ?? "Unknown",
+                ),
+                _buildRegistrationInfo(
+                  "Date",
+                  personalInfo['registration_date'] != null
+                      ? _formatDate(personalInfo['registration_date'])
+                      : "Not available",
+                ),
+                _buildRegistrationInfo(
+                  "Last Updated",
+                  personalInfo['last_updated'] != null
+                      ? _formatDate(personalInfo['last_updated'])
+                      : "Not available",
+                ),
               ],
             ),
           ),
@@ -470,6 +501,19 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
   }
 
   Widget _buildMechanicProfile() {
+    final double? mechanicRating = _parseAverage(
+      mechanicProfile['rating'] ?? mechanicProfile['averageRating'],
+    );
+    final int? mechanicReviewCount = _parseReviewCount(
+      mechanicProfile['ratingCount'] ?? mechanicProfile['rating_count'],
+    );
+    final servicesOffered = mechanicProfile['servicesOffered'];
+    List<dynamic> servicesList = const [];
+    if (servicesOffered is List && servicesOffered.isNotEmpty) {
+      servicesList = List<dynamic>.from(servicesOffered);
+    }
+    final bool hasServices = servicesList.isNotEmpty;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -482,10 +526,7 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.grey.shade300,
-                width: 1,
-              ),
+              border: Border.all(color: Colors.grey.shade300, width: 1),
             ),
             child: Column(
               children: [
@@ -494,10 +535,7 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.grey.shade400,
-                      width: 1.5,
-                    ),
+                    border: Border.all(color: Colors.grey.shade400, width: 1.5),
                   ),
                   child: CircleAvatar(
                     radius: 40,
@@ -507,10 +545,10 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                         : null,
                     child: mechanicProfilePhotoUrl == null
                         ? const Icon(
-                      Icons.person,
-                      size: 40,
-                      color: Colors.white,
-                    )
+                            Icons.person,
+                            size: 40,
+                            color: Colors.white,
+                          )
                         : null,
                   ),
                 ),
@@ -559,19 +597,27 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
           ),
 
           const SizedBox(height: 16),
+          _buildRatingSummary(
+            averageRating: mechanicRating,
+            reviewCount: mechanicReviewCount,
+            accentColor: Colors.blueAccent,
+            label: 'Workshop rating',
+            helperText: mechanicReviewCount != null && mechanicReviewCount > 0
+                ? 'Great service keeps you at the top of user searches.'
+                : 'Finish more jobs to start collecting reviews.',
+          ),
+
+          const SizedBox(height: 16),
 
           // Services Offered
-          if (mechanicProfile['servicesOffered'] != null && mechanicProfile['servicesOffered'].isNotEmpty)
+          if (hasServices)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.grey.shade300,
-                  width: 1,
-                ),
+                border: Border.all(color: Colors.grey.shade300, width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -589,7 +635,7 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
-                    children: (mechanicProfile['servicesOffered'] as List<dynamic>).map<Widget>((service) {
+                    children: servicesList.map<Widget>((service) {
                       return Chip(
                         label: Text(service.toString()),
                         backgroundColor: Colors.blue[50],
@@ -611,10 +657,7 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.grey.shade300,
-                width: 1,
-              ),
+              border: Border.all(color: Colors.grey.shade300, width: 1),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -634,10 +677,16 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                   _buildDocumentItem("CNIC", mechanicProfile['cnicPhotoUrl']),
 
                 if (mechanicProfile['registrationCertificateUrl'] != null)
-                  _buildDocumentItem("Certificate", mechanicProfile['registrationCertificateUrl']),
+                  _buildDocumentItem(
+                    "Certificate",
+                    mechanicProfile['registrationCertificateUrl'],
+                  ),
 
                 if (mechanicProfile['workshopPhotoUrl'] != null)
-                  _buildDocumentItem("Workshop", mechanicProfile['workshopPhotoUrl']),
+                  _buildDocumentItem(
+                    "Workshop",
+                    mechanicProfile['workshopPhotoUrl'],
+                  ),
               ],
             ),
           ),
@@ -646,14 +695,13 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
 
           // Registration Status
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 10,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: mechanicProfile['registrationStatus'] == 'approved'
                   ? Colors.green
-                  : (mechanicProfile['registrationStatus'] == 'pending' ? Colors.orange : Colors.red),
+                  : (mechanicProfile['registrationStatus'] == 'pending'
+                        ? Colors.orange
+                        : Colors.red),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -662,7 +710,9 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                 Icon(
                   mechanicProfile['registrationStatus'] == 'approved'
                       ? Icons.verified
-                      : (mechanicProfile['registrationStatus'] == 'pending' ? Icons.pending : Icons.error_outline),
+                      : (mechanicProfile['registrationStatus'] == 'pending'
+                            ? Icons.pending
+                            : Icons.error_outline),
                   size: 14,
                   color: Colors.white,
                 ),
@@ -671,8 +721,8 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                   mechanicProfile['registrationStatus'] == 'approved'
                       ? "Approved"
                       : (mechanicProfile['registrationStatus'] == 'pending'
-                      ? "Pending Approval"
-                      : "Rejected"),
+                            ? "Pending Approval"
+                            : "Rejected"),
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.white,
@@ -688,17 +738,127 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
     );
   }
 
-  Widget _buildInfoCard({required IconData icon, required String title, required String value}) {
+  Widget _buildRatingSummary({
+    required double? averageRating,
+    required int? reviewCount,
+    required Color accentColor,
+    required String label,
+    String? helperText,
+  }) {
+    final double safeRating = ((averageRating ?? 0.0).clamp(0.0, 5.0));
+    final int totalReviews = reviewCount ?? 0;
+    final bool hasReviews = totalReviews > 0;
+    final String reviewLabel = hasReviews
+        ? '$totalReviews review${totalReviews == 1 ? '' : 's'}'
+        : 'No reviews yet';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accentColor.withOpacity(0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.star_rounded, color: accentColor, size: 30),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black54,
+                    fontFamily: 'UberMove',
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      hasReviews ? safeRating.toStringAsFixed(1) : '--',
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
+                        fontFamily: 'UberMove',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      reviewLabel,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                        fontFamily: 'UberMove',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  helperText ??
+                      (hasReviews
+                          ? 'Latest reviews refresh in real time.'
+                          : 'Once jobs are completed your public rating appears here.'),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                    fontFamily: 'UberMove',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double? _parseAverage(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  int? _parseReviewCount(dynamic value) {
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  Widget _buildInfoCard({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey.shade300,
-          width: 1,
-        ),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
       ),
       child: Row(
         children: [
@@ -708,11 +868,7 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
               color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: Colors.black,
-            ),
+            child: Icon(icon, size: 18, color: Colors.black),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -767,7 +923,9 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
           ),
           Expanded(
             child: Text(
-              value?.toString().isNotEmpty == true ? value.toString() : "Not provided",
+              value?.toString().isNotEmpty == true
+                  ? value.toString()
+                  : "Not provided",
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -847,7 +1005,8 @@ class _ProfilePageScreenState extends State<ProfilePageScreen> with SingleTicker
                     child: Center(
                       child: CircularProgressIndicator(
                         value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
                             : null,
                       ),
                     ),

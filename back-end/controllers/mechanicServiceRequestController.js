@@ -158,8 +158,8 @@ exports.getActiveMechanicRequest = async (req, res, next) => {
             userId: userId,
             status: { $in: ['accepted', 'arrived', 'in-progress'] }
         })
-        .populate('mechanicId', 'personName shopName phoneNumber servicesOffered location rating address personalPhotoUrl')
-        .sort({ createdAt: -1 });
+            .populate('mechanicId', 'personName shopName phoneNumber servicesOffered location rating ratingCount address personalPhotoUrl')
+            .sort({ createdAt: -1 });
 
         if (activeRequest) {
             try {
@@ -209,9 +209,9 @@ exports.getActiveMechanicJob = async (req, res, next) => {
             mechanicId: mechId,
             status: { $in: ['accepted', 'arrived', 'in-progress'] }
         })
-        .populate('userId', 'fullName phoneNumber')
-        .sort({ createdAt: -1 })
-        .lean();
+            .populate('userId', 'fullName phoneNumber')
+            .sort({ createdAt: -1 })
+            .lean();
 
         if (activeJob) {
             try {
@@ -465,6 +465,9 @@ exports.updateMechanicServiceRequestStatus = async (req, res) => {
         }
 
         doc.status = status;
+        if (status === 'completed') {
+            doc.completedAt = new Date();
+        }
         await doc.save();
 
         await logActivity({

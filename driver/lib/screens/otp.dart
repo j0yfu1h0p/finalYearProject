@@ -284,12 +284,7 @@ class _OtpScreenState extends State<OtpScreen> {
       }
     }
 
-    // Priority 1: Any approved role goes directly to dashboard
-    screen ??= rolesStatuses.values.any((status) => status == 'approved')
-        ? RideRequestsDashboard()
-        : null;
-
-    // Priority 2: Mechanic registration flow
+    // Priority 1: Requested role registration flow
     screen ??=
         (requestedRole == 'mechanic' &&
             mechanicStatus != 'approved' &&
@@ -297,7 +292,6 @@ class _OtpScreenState extends State<OtpScreen> {
         ? MechanicRegistrationScreen()
         : null;
 
-    // Priority 3: Driver registration flow
     screen ??=
         (requestedRole == 'driver' &&
             driverStatus != 'approved' &&
@@ -305,7 +299,12 @@ class _OtpScreenState extends State<OtpScreen> {
         ? DriverRegistrationApp()
         : null;
 
-    // Priority 4: All roles rejected
+    // Priority 2: Any approved role goes directly to dashboard
+    screen ??= rolesStatuses.values.any((status) => status == 'approved')
+        ? RideRequestsDashboard()
+        : null;
+
+    // Priority 3: All roles rejected
     screen ??=
         (rolesStatuses.isNotEmpty &&
             rolesStatuses.values.every((status) => status == 'rejected'))

@@ -14,7 +14,18 @@ const customerSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
-    otp: { 
+    rating: {
+        type: Number,
+        default: 0
+    },
+    ratingCount: {
+        type: Number,
+        default: 0
+    },
+    lastReviewAt: {
+        type: Date
+    },
+    otp: {
         type: String,
         select: false // Do not return OTP in queries by default
     },

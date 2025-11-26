@@ -3,7 +3,8 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const authenticateDriver = require('../middleware/driverAuth');
 const serviceController = require('../controllers/serviceController');
-const {getNearbyPendingRequests} = require("../controllers/driverController");
+const { getNearbyPendingRequests } = require("../controllers/driverController");
+const reviewController = require('../controllers/reviewController');
 
 // Create service request
 router.route('/')
@@ -23,10 +24,17 @@ router.route('/pool')
 
 router.post('/nearby-requests', authenticateToken, serviceController.getNearbyPendingRequests);
 
+// Driver reviews customer after completing ride
+router.post('/:id/user-review', authenticateDriver, reviewController.createDriverReviewForUser);
+
 
 // Get specific request by ID
 router.route('/:id')
   .get(authenticateToken, serviceController.getServiceRequestById);
+
+// Submit review for completed ride
+router.route('/:id/review')
+  .post(authenticateToken, reviewController.createTowingReview);
 
 // Cancel request - for customers
 router.route('/:id/cancel')
@@ -44,12 +52,12 @@ router.route('/:id/complete')
 router.route('/:id/driver-cancel')
   .patch(authenticateDriver, serviceController.cancelServiceRequest);
 router.route('/:id/arrived')
-    .patch(authenticateDriver, serviceController.markArrived);
+  .patch(authenticateDriver, serviceController.markArrived);
 
 router.route('/:id/start')
-    .patch(authenticateDriver, serviceController.startTrip);
+  .patch(authenticateDriver, serviceController.startTrip);
 
 // Driver completes request
 router.route('/:id/complete')
-    .patch(authenticateDriver, serviceController.completeServiceRequest);
+  .patch(authenticateDriver, serviceController.completeServiceRequest);
 module.exports = router;

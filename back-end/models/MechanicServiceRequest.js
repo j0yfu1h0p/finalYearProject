@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Status flow: pending -> accepted -> arrived -> in-progress -> completed OR cancelled
-const MECHANIC_REQUEST_STATUSES = ['pending','accepted','arrived','in-progress','completed','cancelled'];
+const MECHANIC_REQUEST_STATUSES = ['pending', 'accepted', 'arrived', 'in-progress', 'completed', 'cancelled'];
 
 const priceQuoteSchema = new mongoose.Schema({
   amount: { type: Number },
@@ -29,10 +29,13 @@ const mechanicServiceRequestSchema = new mongoose.Schema({
   status: { type: String, enum: MECHANIC_REQUEST_STATUSES, default: 'pending', index: true },
   priceQuote: priceQuoteSchema,
   cancellation: {
-    cancelledBy: { type: String, enum: ['user','mechanic','system'] },
+    cancelledBy: { type: String, enum: ['user', 'mechanic', 'system'] },
     reason: String,
     at: Date
   },
+  reviewId: { type: mongoose.Schema.Types.ObjectId, ref: 'Review' },
+  providerReviewId: { type: mongoose.Schema.Types.ObjectId, ref: 'Review' },
+  completedAt: { type: Date },
   expiresAt: { type: Date, index: true }, // logical expiry mark
 }, { timestamps: true });
 

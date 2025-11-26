@@ -10,11 +10,12 @@ import 'package:audioplayers/audioplayers.dart';
 import '../../services/api_service.dart';
 import 'package:http/http.dart' as http;
 import '../../services/auth_service.dart';
+import '../../services/review_service.dart';
 import '../../utils/snackbar_util.dart';
 import '../../utils/refresh_button_widget.dart';
+import '../../widgets/review_prompt_sheet.dart';
 import 'package:user/screens/trip_chat_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:share_plus/share_plus.dart';
 
 class DriverTrackingScreen extends StatefulWidget {
   final Map<String, dynamic> driverData;
@@ -35,7 +36,6 @@ class DriverTrackingScreen extends StatefulWidget {
 class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
   final MapController _mapController = MapController();
   LatLng? _driverLocation;
-  bool _isLoading = false;
   String _tripStatus = 'accepted';
   Timer? _locationUpdateTimer;
   IO.Socket? _socket;
@@ -54,7 +54,12 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
   Timer? _notificationTimer;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  StreamController<String> _statusStreamController = StreamController<String>.broadcast();
+  StreamController<String> _statusStreamController =
+      StreamController<String>.broadcast();
+  final ReviewService _reviewService = ReviewService();
+  bool _hasShownReviewPrompt = false;
+  bool _hasSubmittedReview = false;
+  String? _existingReviewId;
 
   final Map<String, Map<String, dynamic>> _statusConfig = {
     'accepted': {
@@ -93,6 +98,9 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
   void initState() {
     super.initState();
 
+    _tripStatus = widget.serviceRequest['status']?.toString() ?? 'accepted';
+    _existingReviewId = widget.serviceRequest['reviewId']?.toString();
+
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.black,
@@ -103,7 +111,9 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     );
 
     _statusStreamController.stream.listen((status) {
-      if (status == 'completed' || status == 'cancelled') {
+      if (status == 'completed') {
+        _handleRideCompleted();
+      } else if (status == 'cancelled') {
         _navigateToHomeScreen();
       }
     });
@@ -167,14 +177,19 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
               'phone': profile['personal_info']['phone'] ?? '+923184201830',
               'avatar': profile['personal_info']['avatar'],
             },
-            'vehicles': profile['vehicles'] != null && profile['vehicles'].isNotEmpty
-                ? [{
-              'plate': profile['vehicles'][0]['plate'] ?? 'N/A',
-              'color': profile['vehicles'][0]['color'] ?? 'Black',
-            }]
+            'vehicles':
+                profile['vehicles'] != null && profile['vehicles'].isNotEmpty
+                ? [
+                    {
+                      'plate': profile['vehicles'][0]['plate'] ?? 'N/A',
+                      'color': profile['vehicles'][0]['color'] ?? 'Black',
+                    },
+                  ]
                 : widget.driverData['vehicle'] != null
                 ? [widget.driverData['vehicle']]
-                : [{'plate': 'N/A', 'color': 'Black'}],
+                : [
+                    {'plate': 'N/A', 'color': 'Black'},
+                  ],
           };
 
           setState(() {
@@ -184,7 +199,9 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
           throw Exception(data['message'] ?? 'Failed to fetch driver profile');
         }
       } else {
-        throw Exception('Failed to fetch driver profile: ${response.statusCode}');
+        throw Exception(
+          'Failed to fetch driver profile: ${response.statusCode}',
+        );
       }
     } catch (error) {
       if (!_isDisposed && mounted) {
@@ -197,7 +214,9 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
             },
             'vehicles': widget.driverData['vehicle'] != null
                 ? [widget.driverData['vehicle']]
-                : [{'plate': 'N/A', 'color': 'Black'}],
+                : [
+                    {'plate': 'N/A', 'color': 'Black'},
+                  ],
           };
         });
       }
@@ -227,20 +246,25 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
         });
       });
 
-      _socket?.on('driver_location_update', (data) {
-        if (!_isDisposed && mounted) {
-          final lat = data['location']['lat']?.toDouble();
-          final lng = data['location']['lng']?.toDouble();
-          if (lat != null && lng != null) {
-            setState(() {
-              _driverLocation = LatLng(lat, lng);
-              _liveDriverLocation = LatLng(lat, lng);
-            });
+      // _socket?.on('driver_location_update', (data) {
+      //   if (!_isDisposed && mounted) {
+      //     final lat = data['location']['lat']?.toDouble();
+      //     final lng = data['location']['lng']?.toDouble();
 
-            _mapController.move(_driverLocation!, 15.0);
-          }
-        }
-      });
+
+      //     print('Received driver location update: lat=$lat, lng=$lng');
+
+          
+      //     if (lat != null && lng != null) {
+      //       setState(() {
+      //         _driverLocation = LatLng(lat, lng);
+      //         _liveDriverLocation = LatLng(lat, lng);
+      //       });
+
+      //       _mapController.move(_driverLocation!, 15.0);
+      //     }
+      //   }
+      // });
 
       _socket?.on('driver_arrived', (data) {
         if (!_isDisposed && mounted) {
@@ -329,12 +353,16 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
           default:
             SystemSound.play(SystemSoundType.click);
         }
-      } catch (systemError) {
-      }
+      } catch (systemError) {}
     }
   }
 
-  void _showOverlayNotification(String title, String message, Color color, IconData icon) {
+  void _showOverlayNotification(
+    String title,
+    String message,
+    Color color,
+    IconData icon,
+  ) {
     _hideOverlayNotification();
 
     _notificationOverlay = OverlayEntry(
@@ -418,7 +446,10 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     );
 
     Overlay.of(context).insert(_notificationOverlay!);
-    _notificationTimer = Timer(const Duration(seconds: 5), _hideOverlayNotification);
+    _notificationTimer = Timer(
+      const Duration(seconds: 5),
+      _hideOverlayNotification,
+    );
   }
 
   void _hideOverlayNotification() {
@@ -431,6 +462,71 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     }
   }
 
+  Future<void> _handleRideCompleted() async {
+    if (_hasSubmittedReview || _existingReviewId != null) {
+      _navigateToHomeScreen();
+      return;
+    }
+
+    if (_hasShownReviewPrompt || _isDisposed || !mounted) {
+      _navigateToHomeScreen();
+      return;
+    }
+
+    _hasShownReviewPrompt = true;
+
+    final driverName =
+        _driverProfile?['personal_info']?['name'] ??
+        widget.driverData['name'] ??
+        'Your driver';
+    final avatarUrl =
+        _driverProfile?['personal_info']?['avatar'] ??
+        widget.driverData['avatar'];
+    final requestId =
+        widget.serviceRequest['_id']?.toString() ??
+        widget.serviceRequest['id']?.toString();
+
+    if (requestId == null) {
+      SnackBarUtil.showError(context, 'Missing ride information.');
+      _navigateToHomeScreen();
+      return;
+    }
+
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return ReviewPromptSheet(
+          title: 'How was your trip?',
+          subtitle:
+              'Share a quick rating to help us keep great drivers on the road.',
+          subjectName: driverName,
+          subjectRole: 'Driver',
+          avatarUrl: avatarUrl?.toString(),
+          accentColor: Colors.green,
+          onSubmit: (rating, comment) async {
+            await _reviewService.submitRideReview(
+              requestId: requestId,
+              rating: rating,
+              comment: comment,
+            );
+            _existingReviewId = 'submitted';
+            _hasSubmittedReview = true;
+            if (mounted) {
+              SnackBarUtil.showSuccess(
+                context,
+                'Thanks for rating your driver!',
+              );
+            }
+          },
+        );
+      },
+    );
+
+    _navigateToHomeScreen();
+  }
+
   void _navigateToHomeScreen() {
     if (_isNavigating) return;
 
@@ -440,7 +536,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
       if (!_isDisposed && mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const HomeScreen()),
-              (route) => false,
+          (route) => false,
         );
       }
       _isNavigating = false;
@@ -448,18 +544,16 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
   }
 
   Future<void> _cancelTrip() async {
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
       final api = ApiService();
-      final result = await api.cancelServiceRequest(widget.serviceRequest['_id']);
+      final result = await api.cancelServiceRequest(
+        widget.serviceRequest['_id'],
+      );
 
       if (result['success']) {
         _socket?.emit('user_cancelled_ride', {
           'requestId': widget.serviceRequest['_id'],
-          'driverId': widget.driverData['_id']
+          'driverId': widget.driverData['_id'],
         });
 
         if (!_isDisposed && mounted) {
@@ -474,13 +568,10 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
       }
     } catch (error) {
       if (!_isDisposed && mounted) {
-        SnackBarUtil.showError(context, 'Error cancelling trip: ${error.toString()}');
-      }
-    } finally {
-      if (!_isDisposed && mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        SnackBarUtil.showError(
+          context,
+          'Error cancelling trip: ${error.toString()}',
+        );
       }
     }
   }
@@ -518,7 +609,7 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     _isDisposed = true;
     _locationUpdateTimer?.cancel();
     _socket?.disconnect();
-    _socket?.off('driver_location_update');
+    // _socket?.off('driver_location_update');
     _socket?.off('driver_arrived');
     _socket?.off('trip_started');
     _socket?.off('trip_completed');
@@ -560,42 +651,66 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
       );
     }
 
-    final pickupLat = double.tryParse(widget.routeData['pickupLat']?.toString() ?? '');
-    final pickupLng = double.tryParse(widget.routeData['pickupLng']?.toString() ?? '');
-    final dropoffLat = double.tryParse(widget.routeData['dropoffLat']?.toString() ?? '');
-    final dropoffLng = double.tryParse(widget.routeData['dropoffLng']?.toString() ?? '');
+    final pickupLat = double.tryParse(
+      widget.routeData['pickupLat']?.toString() ?? '',
+    );
+    final pickupLng = double.tryParse(
+      widget.routeData['pickupLng']?.toString() ?? '',
+    );
+    final dropoffLat = double.tryParse(
+      widget.routeData['dropoffLat']?.toString() ?? '',
+    );
+    final dropoffLng = double.tryParse(
+      widget.routeData['dropoffLng']?.toString() ?? '',
+    );
 
     List<LatLng> routePoints = [];
-    if (pickupLat != null && pickupLng != null && dropoffLat != null && dropoffLng != null) {
+    if (pickupLat != null &&
+        pickupLng != null &&
+        dropoffLat != null &&
+        dropoffLng != null) {
       final pickup = LatLng(pickupLat, pickupLng);
-      final drop   = LatLng(dropoffLat, dropoffLng);
+      final drop = LatLng(dropoffLat, dropoffLng);
       routePoints.addAll([pickup, drop]);
-      _routeBounds = LatLngBounds.fromPoints([pickup, drop, if (_liveDriverLocation != null) _liveDriverLocation!]);
+      _routeBounds = LatLngBounds.fromPoints([
+        pickup,
+        drop,
+        if (_liveDriverLocation != null) _liveDriverLocation!,
+      ]);
     }
 
     return WillPopScope(
       onWillPop: () async {
-        if (_tripStatus == 'completed' || _tripStatus == 'cancelled') {
+        if (_tripStatus == 'completed') {
+          _handleRideCompleted();
+          return false;
+        }
+
+        if (_tripStatus == 'cancelled') {
           return true;
         }
 
-        bool shouldExit = await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Cancel Trip?'),
-            content: const Text('Are you sure you want to cancel this trip and go back?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('No'),
+        bool shouldExit =
+            await showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Cancel Trip?'),
+                content: const Text(
+                  'Are you sure you want to cancel this trip and go back?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('No'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Yes'),
+                  ),
+                ],
               ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Yes'),
-              ),
-            ],
-          ),
-        ) ?? false;
+            ) ??
+            false;
 
         if (shouldExit) {
           _cancelTrip();
@@ -632,7 +747,8 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                         ),
                         children: [
                           TileLayer(
-                            urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                            urlTemplate:
+                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                             userAgentPackageName: 'com.example.user',
                           ),
                           if (routePoints.length >= 2)
@@ -675,15 +791,22 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                                 height: screenWidth * 0.1,
                                 child: _driverLocation == null
                                     ? const SizedBox()
-                                    : Icon(Icons.directions_car,
-                                    color: Colors.green, size: screenWidth * 0.1),
+                                    : Icon(
+                                        Icons.directions_car,
+                                        color: Colors.green,
+                                        size: screenWidth * 0.1,
+                                      ),
                               ),
                               if (_liveDriverLocation != null)
                                 Marker(
                                   point: _liveDriverLocation!,
                                   width: screenWidth * 0.12,
                                   height: screenWidth * 0.12,
-                                  child: Icon(Icons.directions_car, color: Colors.green, size: screenWidth * 0.12),
+                                  child: Icon(
+                                    Icons.directions_car,
+                                    color: Colors.green,
+                                    size: screenWidth * 0.12,
+                                  ),
                                 ),
                             ],
                           ),
@@ -695,9 +818,15 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                         child: Row(
                           children: [
                             IconButton(
-                              icon: Icon(Icons.arrow_back, color: Colors.black, size: screenWidth * 0.06),
+                              icon: Icon(
+                                Icons.arrow_back,
+                                color: Colors.black,
+                                size: screenWidth * 0.06,
+                              ),
                               onPressed: () {
-                                if (_tripStatus == 'completed' || _tripStatus == 'cancelled') {
+                                if (_tripStatus == 'completed') {
+                                  _handleRideCompleted();
+                                } else if (_tripStatus == 'cancelled') {
                                   _navigateToHomeScreen();
                                 } else {
                                   _showCancelDialog();
@@ -712,7 +841,10 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                               child: RefreshButtonWidget(
                                 onRefresh: () {
                                   _fetchDriverProfile();
-                                  SnackBarUtil.showSuccess(context, 'Refreshing driver information...');
+                                  SnackBarUtil.showSuccess(
+                                    context,
+                                    'Refreshing driver information...',
+                                  );
                                 },
                                 iconColor: Colors.black,
                                 iconSize: screenWidth * 0.06,
@@ -739,7 +871,11 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                               );
                             }
                           },
-                          child: Icon(Icons.my_location, color: Colors.black, size: screenWidth * 0.05),
+                          child: Icon(
+                            Icons.my_location,
+                            color: Colors.black,
+                            size: screenWidth * 0.05,
+                          ),
                         ),
                       ),
                     ],
@@ -759,10 +895,8 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
             }
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => TripChatScreen(
-                  tripId: id,
-                  tripModel: 'ServiceRequest',
-                ),
+                builder: (_) =>
+                    TripChatScreen(tripId: id, tripModel: 'ServiceRequest'),
               ),
             );
           },
@@ -826,11 +960,23 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
                   SizedBox(height: screenHeight * 0.02),
                   _buildVehicleInfoSection(screenWidth),
                   SizedBox(height: screenHeight * 0.02),
-                  _buildLocationInfoSection('Pickup Location', Icons.location_on, Colors.red,
-                      widget.routeData['pickupLocation'] ?? 'Pickup location not available', screenWidth),
+                  _buildLocationInfoSection(
+                    'Pickup Location',
+                    Icons.location_on,
+                    Colors.red,
+                    widget.routeData['pickupLocation'] ??
+                        'Pickup location not available',
+                    screenWidth,
+                  ),
                   SizedBox(height: screenHeight * 0.02),
-                  _buildLocationInfoSection('Destination', Icons.flag, Colors.blue,
-                      widget.routeData['destinationLocation'] ?? 'Destination not available', screenWidth),
+                  _buildLocationInfoSection(
+                    'Destination',
+                    Icons.flag,
+                    Colors.blue,
+                    widget.routeData['destinationLocation'] ??
+                        'Destination not available',
+                    screenWidth,
+                  ),
                   SizedBox(height: screenHeight * 0.02),
                   _buildTripStatusSection(screenWidth),
                 ],
@@ -856,7 +1002,11 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
               ? NetworkImage(_driverProfile!['personal_info']['avatar'])
               : null,
           child: _driverProfile?['personal_info']?['avatar'] == null
-              ? Icon(Icons.person, size: screenWidth * 0.06, color: Colors.white)
+              ? Icon(
+                  Icons.person,
+                  size: screenWidth * 0.06,
+                  color: Colors.white,
+                )
               : null,
         ),
         SizedBox(width: screenWidth * 0.04),
@@ -865,7 +1015,9 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _driverProfile?['personal_info']?['name'] ?? widget.driverData['name'] ?? 'Driver',
+                _driverProfile?['personal_info']?['name'] ??
+                    widget.driverData['name'] ??
+                    'Driver',
                 style: TextStyle(
                   fontSize: screenWidth * 0.045,
                   fontWeight: FontWeight.bold,
@@ -875,7 +1027,9 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
               ),
               SizedBox(height: screenWidth * 0.01),
               Text(
-                _driverProfile?['personal_info']?['phone'] ?? widget.driverData['phone'] ?? 'Phone not available',
+                _driverProfile?['personal_info']?['phone'] ??
+                    widget.driverData['phone'] ??
+                    'Phone not available',
                 style: TextStyle(
                   fontSize: screenWidth * 0.035,
                   color: Colors.grey,
@@ -893,7 +1047,11 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.directions_car, color: Colors.green[700], size: screenWidth * 0.06),
+        Icon(
+          Icons.directions_car,
+          color: Colors.green[700],
+          size: screenWidth * 0.06,
+        ),
         SizedBox(width: screenWidth * 0.03),
         Expanded(
           child: Column(
@@ -923,7 +1081,13 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
     );
   }
 
-  Widget _buildLocationInfoSection(String title, IconData icon, Color color, String content, double screenWidth) {
+  Widget _buildLocationInfoSection(
+    String title,
+    IconData icon,
+    Color color,
+    String content,
+    double screenWidth,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1042,9 +1206,13 @@ class _DriverTrackingScreenState extends State<DriverTrackingScreen> {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: _navigateToHomeScreen,
+          onPressed: _tripStatus == 'completed'
+              ? _handleRideCompleted
+              : _navigateToHomeScreen,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _tripStatus == 'completed' ? Colors.green : Colors.red,
+            backgroundColor: _tripStatus == 'completed'
+                ? Colors.green
+                : Colors.red,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),

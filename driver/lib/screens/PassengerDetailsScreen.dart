@@ -10,8 +10,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/driver_request_screen_model.dart';
 import '../services/passenger_details_api.dart';
+import '../services/review_service.dart';
 import '../services/websocket_service.dart';
 import '../utils/snackbar_util.dart';
+import '../widgets/user_review_prompt_sheet.dart';
 import 'ride_requese_dashboard/driver_requests_dashboard.dart';
 import './trip_chat_screen.dart';
 
@@ -39,6 +41,7 @@ class _SimplePassengerDetailsScreenState
   Timer? _locationTimer;
   bool _hasArrived = false;
   bool _tripStarted = false;
+  bool _hasPromptedCustomerReview = false;
   Map<String, dynamic> _passengerDetails = {};
   LatLng? _driverLatLng;
 
@@ -135,7 +138,10 @@ class _SimplePassengerDetailsScreenState
     setState(() => _isLoading = true);
     try {
       await ApiService.completeRide(widget.request.id);
+      if (!mounted) return;
       SnackBarUtil.showSuccess(context, 'Ride completed!');
+      await _promptCustomerReviewAfterRide();
+      if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => RideRequestsDashboard()),
@@ -182,6 +188,24 @@ class _SimplePassengerDetailsScreenState
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _promptCustomerReviewAfterRide() async {
+    if (_hasPromptedCustomerReview || !mounted) return;
+    _hasPromptedCustomerReview = true;
+
+    await showUserReviewPromptSheet(
+      context: context,
+      title: 'How was the passenger?',
+      subtitle: 'Share quick feedback to keep rides safe for everyone.',
+      accentColor: Colors.black,
+      submitLabel: 'Send feedback',
+      onSubmit: (rating, comment) => ReviewService.submitUserReviewForRide(
+        widget.request.id,
+        rating,
+        comment: comment,
+      ),
+    );
   }
 
   // -------------------------------------------------

@@ -78,6 +78,8 @@ class NominatimService {
     }
   }
 
+
+
   Future<LatLng?> forward(String address) async {
     try {
       if (address.trim().isEmpty) return null;

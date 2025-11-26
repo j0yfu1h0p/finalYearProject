@@ -86,6 +86,8 @@ class _MechanicsTabState extends State<MechanicsTab> {
                   'status': e['registrationStatus'],
                   'servicesCount': e['servicesOffered']?.length ?? 0,
                   'registrationDate': e['createdAt'],
+                  'rating': _asDouble(e['rating']),
+                  'ratingCount': _asInt(e['ratingCount']),
                 },
               )
               .toList();
@@ -393,6 +395,13 @@ class _MechanicsTabState extends State<MechanicsTab> {
                     itemCount: _mechanics.length,
                     itemBuilder: (context, index) {
                       final mechanic = _mechanics[index];
+                      final double rating =
+                          (mechanic['rating'] as double?) ?? 0.0;
+                      final int ratingCount =
+                          (mechanic['ratingCount'] as int?) ?? 0;
+                      final String ratingLabel = ratingCount > 0
+                          ? '${rating.toStringAsFixed(1)} / 5'
+                          : 'No reviews yet';
                       return Container(
                         margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
@@ -534,6 +543,26 @@ class _MechanicsTabState extends State<MechanicsTab> {
                                 ],
                               ),
                               const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildDetailItem(
+                                      Icons.star_rate_rounded,
+                                      'Rating',
+                                      ratingLabel,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildDetailItem(
+                                      Icons.people_outline,
+                                      'Reviews',
+                                      ratingCount.toString(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
                               _buildDetailItem(
                                 Icons.calendar_today_outlined,
                                 'Registration Date',
@@ -630,5 +659,17 @@ class _MechanicsTabState extends State<MechanicsTab> {
         ),
       ],
     );
+  }
+
+  double _asDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  int _asInt(dynamic value) {
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 }

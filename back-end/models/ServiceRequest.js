@@ -69,6 +69,17 @@ const ServiceRequestSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Driver'
     },
+    reviewId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Review'
+    },
+    providerReviewId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Review'
+    },
+    completedAt: {
+        type: Date
+    },
     expiresAt: {
         type: Date
     }

@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 
-const { authenticateToken,authenticateUserToken  } = require('../middleware/auth'); // user auth
+const { authenticateToken, authenticateUserToken } = require('../middleware/auth'); // user auth
 const mechanicAuth = require('../middleware/mechanicAuth'); // mechanic auth
 const c = require('../controllers/mechanicServiceRequestController');
+const reviewController = require('../controllers/reviewController');
 
 // ORDER MATTERS: specific paths first
 
@@ -23,6 +24,8 @@ router.get('/active-request', authenticateToken, c.getActiveMechanicRequest);  /
 
 router.get('/:id', authenticateToken, c.getUserServiceRequest);                // Get specific request
 router.patch('/:id/cancel', authenticateToken, c.cancelUserServiceRequest);    // Cancel pending request
+router.post('/:id/review', authenticateToken, reviewController.createMechanicReview); // Review mechanic after completion
+router.post('/:id/user-review', mechanicAuth, reviewController.createMechanicReviewForUser); // Mechanic reviews customer
 router.get('/user/requests/history', authenticateUserToken, c.listUserServiceRequests); // for user only
 // MECHANIC ROUTES
 router.patch('/:id/accept', mechanicAuth, c.acceptMechanicServiceRequest);           // Accept request

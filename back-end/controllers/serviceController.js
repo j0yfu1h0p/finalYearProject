@@ -72,8 +72,8 @@ exports.getActiveRide = async (req, res, next) => {
             userId: req.user.id,
             status: { $in: ['accepted', 'arrived', 'in_progress'] }
         })
-        .populate('driverId', 'personal_info phoneNumber vehicles rating')
-        .sort({ createdAt: -1 });
+            .populate('driverId', 'personal_info phoneNumber vehicles rating ratingCount')
+            .sort({ createdAt: -1 });
 
         if (activeRide) {
             return res.status(200).json({
@@ -99,8 +99,8 @@ exports.getActiveDriverTrip = async (req, res, next) => {
             driverId: req.driver.id,
             status: { $in: ['accepted', 'arrived', 'in_progress'] }
         })
-        .populate('userId', 'fullName phoneNumber')
-        .sort({ createdAt: -1 });
+            .populate('userId', 'fullName phoneNumber')
+            .sort({ createdAt: -1 });
 
         if (activeTrip) {
             return res.status(200).json({
@@ -357,6 +357,7 @@ exports.completeServiceRequest = async (req, res, next) => {
         }
 
         request.status = 'completed';
+        request.completedAt = new Date();
         await request.save();
 
         const io = req.app.locals.io;

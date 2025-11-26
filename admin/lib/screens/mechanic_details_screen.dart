@@ -25,26 +25,34 @@ class Mechanic {
   String registrationStatus;
   final bool isActive;
   final DateTime createdAt;
+  final double rating;
+  final int ratingCount;
 
   Mechanic.fromJson(Map<String, dynamic> json)
-      : id = json['_id'] ?? '',
-        phoneNumber = json['phoneNumber'] ?? '',
-        personName = json['personName'] ?? '',
-        shopName = json['shopName'] ?? '',
-        personalPhotoUrl = json['personalPhotoUrl'] ?? '',
-        cnicPhotoUrl = json['cnicPhotoUrl'] ?? '',
-        workshopPhotoUrl = json['workshopPhotoUrl'] ?? '',
-        introductionVideoUrl = json['introductionVideoUrl'] ?? '',
-        registrationCertificateUrl = json['registrationCertificateUrl'] ?? '',
-        emergencyContact = json['emergencyContact'] ?? '',
-        servicesOffered = (json['servicesOffered'] as List? ?? []).cast<String>(),
-        location = json['location'] ?? {},
-        address = json['address'] ?? '',
-        registrationStatus = json['registrationStatus'] ?? 'uncertain',
-        isActive = json['isActive'] ?? true,
-        createdAt = DateTime.parse(
-          json['createdAt'] ?? DateTime.now().toString(),
-        );
+    : id = json['_id'] ?? '',
+      phoneNumber = json['phoneNumber'] ?? '',
+      personName = json['personName'] ?? '',
+      shopName = json['shopName'] ?? '',
+      personalPhotoUrl = json['personalPhotoUrl'] ?? '',
+      cnicPhotoUrl = json['cnicPhotoUrl'] ?? '',
+      workshopPhotoUrl = json['workshopPhotoUrl'] ?? '',
+      introductionVideoUrl = json['introductionVideoUrl'] ?? '',
+      registrationCertificateUrl = json['registrationCertificateUrl'] ?? '',
+      emergencyContact = json['emergencyContact'] ?? '',
+      servicesOffered = (json['servicesOffered'] as List? ?? []).cast<String>(),
+      location = json['location'] ?? {},
+      address = json['address'] ?? '',
+      registrationStatus = json['registrationStatus'] ?? 'uncertain',
+      isActive = json['isActive'] ?? true,
+      createdAt = DateTime.parse(
+        json['createdAt'] ?? DateTime.now().toString(),
+      ),
+      rating = json['rating'] is num
+          ? (json['rating'] as num).toDouble()
+          : double.tryParse(json['rating']?.toString() ?? '') ?? 0.0,
+      ratingCount = json['ratingCount'] is num
+          ? (json['ratingCount'] as num).toInt()
+          : int.tryParse(json['ratingCount']?.toString() ?? '') ?? 0;
 }
 
 /// Administrative service class for mechanic management operations
@@ -219,7 +227,7 @@ class _MechanicDetailScreenState extends State<MechanicDetailScreen> {
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => LoginPage()),
-          (route) => false,
+      (route) => false,
     );
 
     SnackBarUtil.showError(context, 'Session expired. Please login again.');
@@ -270,10 +278,10 @@ class _MechanicDetailScreenState extends State<MechanicDetailScreen> {
   /// Shows confirmation dialog for critical actions like status changes
   /// Ensures user intent before executing registration status updates
   void _showConfirmationDialog(
-      String title,
-      String message,
-      VoidCallback onConfirm,
-      ) {
+    String title,
+    String message,
+    VoidCallback onConfirm,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -306,7 +314,7 @@ class _MechanicDetailScreenState extends State<MechanicDetailScreen> {
     _showConfirmationDialog(
       'Approve Mechanic',
       'Are you sure you want to approve this mechanic?',
-          () async {
+      () async {
         try {
           await _mechanicService.approveMechanic(widget.mechanicId);
           setState(() {
@@ -330,7 +338,7 @@ class _MechanicDetailScreenState extends State<MechanicDetailScreen> {
     _showConfirmationDialog(
       'Reject Mechanic',
       'Are you sure you want to reject this mechanic?',
-          () async {
+      () async {
         try {
           await _mechanicService.rejectMechanic(widget.mechanicId);
           setState(() {
@@ -354,7 +362,7 @@ class _MechanicDetailScreenState extends State<MechanicDetailScreen> {
     _showConfirmationDialog(
       'Set to Pending',
       'Are you sure you want to set this mechanic to pending?',
-          () async {
+      () async {
         try {
           await _mechanicService.setPendingMechanic(widget.mechanicId);
           setState(() {
@@ -378,7 +386,7 @@ class _MechanicDetailScreenState extends State<MechanicDetailScreen> {
     _showConfirmationDialog(
       'Set to Uncertain',
       'Are you sure you want to set this mechanic to uncertain?',
-          () async {
+      () async {
         try {
           await _mechanicService.setUncertainMechanic(widget.mechanicId);
           setState(() {
@@ -518,48 +526,48 @@ class _MechanicDetailScreenState extends State<MechanicDetailScreen> {
                 ),
                 child: imageUrl.isNotEmpty
                     ? ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Center(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: _errorColor,
+                                    size: 40,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Failed to load image',
+                                    style: TextStyle(color: _textSecondary),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    : Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              Icons.error_outline,
-                              color: _errorColor,
+                              Icons.photo_outlined,
+                              color: _textSecondary,
                               size: 40,
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              'Failed to load image',
+                              'No image available',
                               style: TextStyle(color: _textSecondary),
                             ),
                           ],
                         ),
-                      );
-                    },
-                  ),
-                )
-                    : Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.photo_outlined,
-                        color: _textSecondary,
-                        size: 40,
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'No image available',
-                        style: TextStyle(color: _textSecondary),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),
@@ -606,10 +614,104 @@ class _MechanicDetailScreenState extends State<MechanicDetailScreen> {
     );
   }
 
+  Widget _buildMechanicRatingCard() {
+    final double average = mechanic?.rating ?? 0;
+    final int count = mechanic?.ratingCount ?? 0;
+    final bool hasReviews = count > 0;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _accentColor.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.star_rate_rounded,
+                color: _accentColor,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Mechanic Rating',
+                    style: TextStyle(
+                      color: _textSecondary,
+                      fontSize: 13,
+                      fontFamily: 'UberMove',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        hasReviews ? average.toStringAsFixed(1) : '--',
+                        style: const TextStyle(
+                          color: _textPrimary,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'UberMove',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        hasReviews
+                            ? '$count review${count == 1 ? '' : 's'}'
+                            : 'No reviews yet',
+                        style: const TextStyle(
+                          color: _textSecondary,
+                          fontSize: 14,
+                          fontFamily: 'UberMove',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    hasReviews
+                        ? 'Calculated from post-service feedback and dispute resolutions.'
+                        : 'Ratings will appear after customers review completed services.',
+                    style: const TextStyle(
+                      color: _textSecondary,
+                      fontSize: 12,
+                      fontFamily: 'UberMove',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Generates status badge with color-coded visual indicators
   /// Displays current registration status with appropriate styling for multiple states
   Widget _buildStatusBadge() {
-    final status = mechanic?.registrationStatus?.toLowerCase() ?? 'uncertain';
+    final status = mechanic?.registrationStatus.toLowerCase() ?? 'uncertain';
     late Color color;
     late String text;
 
@@ -793,15 +895,15 @@ class _MechanicDetailScreenState extends State<MechanicDetailScreen> {
                       radius: 50,
                       backgroundColor: Colors.grey[300],
                       backgroundImage:
-                      mechanic?.personalPhotoUrl.isNotEmpty == true
+                          mechanic?.personalPhotoUrl.isNotEmpty == true
                           ? NetworkImage(mechanic!.personalPhotoUrl)
                           : null,
                       child: mechanic?.personalPhotoUrl.isEmpty == true
                           ? const Icon(
-                        Icons.person,
-                        size: 50,
-                        color: _textSecondary,
-                      )
+                              Icons.person,
+                              size: 50,
+                              color: _textSecondary,
+                            )
                           : null,
                     ),
                     const SizedBox(height: 16),
@@ -839,6 +941,8 @@ class _MechanicDetailScreenState extends State<MechanicDetailScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            _buildMechanicRatingCard(),
+            const SizedBox(height: 20),
 
             // Contact Information
             _buildSection('Contact Information', [
@@ -874,7 +978,7 @@ class _MechanicDetailScreenState extends State<MechanicDetailScreen> {
                 'Workshop Photo',
                 mechanic?.workshopPhotoUrl ?? '',
               ),
-              if (mechanic?.introductionVideoUrl?.isNotEmpty == true)
+              if ((mechanic?.introductionVideoUrl ?? '').isNotEmpty)
                 _buildDocumentCard(
                   'Introduction Video',
                   mechanic!.introductionVideoUrl,
